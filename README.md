@@ -13,3 +13,9 @@ https://github.com/kisonecat/dvi2html
 https://people.math.osu.edu/fowler.291/latex/
 
 https://github.com/manuels/texlive.js/
+
+https://microsoft.github.io/monaco-editor/
+
+https://browsix.org/latex-demo-sync/
+
+https://github.com/tbfleming/em-shell
