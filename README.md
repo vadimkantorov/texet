@@ -1,3 +1,5 @@
+https://github.com/AREA44/vscode-LaTeX-support
+
 https://github.com/lyze/xetex-js
 
 https://tug.org/svn/texlive/trunk/Build/source/
