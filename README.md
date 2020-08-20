@@ -1,5 +1,7 @@
 https://github.com/AREA44/vscode-LaTeX-support
 
+https://registry.npmjs.org/monaco-editor/-/monaco-editor-0.20.0.tgz
+
 https://github.com/lyze/xetex-js
 
 https://tug.org/svn/texlive/trunk/Build/source/
