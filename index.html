@@ -110,7 +110,21 @@
         term.open(document.getElementById('terminal'));
         //fitAddon.fit();
 
-        term.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m $ ')
+        var curLine = '';
+        term.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m $ ');
+        term.on('key', (key, ev) => {
+            if(ev.keyCode == 13)
+            {
+                term.write('\r\n');
+                console.log(curLine);
+                curLine = '';
+            }
+            else
+            {
+                curLine += key;
+                term.write(key);
+            }
+        });
         
         require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@latest/min/vs' }});
         window.MonacoEnvironment = { getWorkerUrl: () => proxy };
