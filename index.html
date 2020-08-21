@@ -63,14 +63,14 @@
             return window.monaco_editor.getModel().getValue();
         }
 
-        function edit_file(contents)
+        function open_file(contents)
         {
             window.monaco_editor.getModel().setValue(contents);
         }
 
         function display_pdf(contents)
         {
-            var loadingTask = pdfjsLib.getDocument({data: contents}).promise.then(function(pdf) {
+            var loadingTask = window.pdf.getDocument({data: contents}).promise.then(function(pdf) {
               console.log('PDF loaded');
               
               // Fetch the first page
@@ -104,9 +104,6 @@
 
         }
 
-        // atob() is used to convert base64 encoded PDF to binary-like data.
-        // (See also https://developer.mozilla.org/en-US/docs/Web/API/WindowBase64/
-        // Base64_encoding_and_decoding.)
         var pdfData = atob(
               'JVBERi0xLjcKCjEgMCBvYmogICUgZW50cnkgcG9pbnQKPDwKICAvVHlwZSAvQ2F0YWxvZwog' +
               'IC9QYWdlcyAyIDAgUgo+PgplbmRvYmoKCjIgMCBvYmoKPDwKICAvVHlwZSAvUGFnZXMKICAv' +
@@ -122,11 +119,10 @@
               'MDAwIG4gCjAwMDAwMDAzODAgMDAwMDAgbiAKdHJhaWxlcgo8PAogIC9TaXplIDYKICAvUm9v' +
               'dCAxIDAgUgo+PgpzdGFydHhyZWYKNDkyCiUlRU9G');
 
-        // Loaded via <script> tag, create shortcut to access PDF.js exports.
-        var pdfjsLib = window['pdfjs-dist/build/pdf'];
+        window.pdf = window['pdfjs-dist/build/pdf'];
 
         // The workerSrc property shall be specified.
-        pdfjsLib.GlobalWorkerOptions.workerSrc = '//mozilla.github.io/pdf.js/build/pdf.worker.js';
+        window.pdf.GlobalWorkerOptions.workerSrc = '//mozilla.github.io/pdf.js/build/pdf.worker.js';
 
         // Using DocumentInitParameters object to load binary data.
         display_pdf(pdfData);
@@ -160,10 +156,10 @@
                 if (cmd == '')
                 {
                 }
-                else if(cmd == 'edit')
+                else if(cmd == 'open')
                 {
                     const contents = FS.readFile(arg, {encoding : 'utf8'});
-                    edit_file(contents);
+                    open_file(contents);
                     window.terminal.write('ok!\r\n');
                 }
                 else if(cmd == 'show')
@@ -195,7 +191,6 @@
         
         require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@latest/min/vs' }});
         window.MonacoEnvironment = { getWorkerUrl: () => proxy };
-
         let proxy = URL.createObjectURL(new Blob([`
           self.MonacoEnvironment = {
             baseUrl: 'https://unpkg.com/monaco-editor@latest/min/'
@@ -204,13 +199,9 @@
         `], { type: 'text/javascript' }));
 
         require(["vs/editor/editor.main"], function () {
-          window.monaco_editor = monaco.editor.create(document.getElementById('editor'), {
-            value: 'Type [edit assets/test.txt]',
-            theme: 'vs-dark'
-          });
+          window.monaco_editor = monaco.editor.create(document.getElementById('editor'), {theme: 'vs-dark'});
         });
-        
-    
+
       </script>
     <script type='text/javascript'>
       var statusElement = document.getElementById('status');
