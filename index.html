@@ -230,7 +230,17 @@
         term.on('key', (key, ev) => {
             if(ev.keyCode == 13)
             {
-                Module.callMain(['assets/test.txt'])
+                //https://stackoverflow.com/questions/46943653/how-to-pass-char-array-to-emscripten-compiled-code
+                //var result = Module.ccall('main', 'number', ['number', ], args);
+                term.write('\r\n');
+                const contents = FS.readFile('assets/test.txt', {encoding : 'utf8'});
+                const json_object = {
+                    value: contents,
+                    language: 'javascript',
+                    theme: 'vs-dark'
+                };
+                window.monaco_editor.getModel().setValue(contents);
+                    term.write(contents);
                 term.write('\r\n');
                 console.log(curLine);
                 curLine = '';
@@ -253,7 +263,7 @@
         `], { type: 'text/javascript' }));
 
         require(["vs/editor/editor.main"], function () {
-          let editor = monaco.editor.create(document.getElementById('editor'), {
+          window.monaco_editor = monaco.editor.create(document.getElementById('editor'), {
             value: [
               'function x() {',
               '\tconsole.log("Hello world!");',
@@ -272,6 +282,7 @@
       var spinnerElement = document.getElementById('spinner');
 
       var Module = {
+          noInitialRun : true,
         preRun: [],
         postRun: [],
         print: (function() {
