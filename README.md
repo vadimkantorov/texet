@@ -25,3 +25,29 @@ https://microsoft.github.io/monaco-editor/
 https://browsix.org/latex-demo-sync/
 
 https://github.com/tbfleming/em-shell
+
+### Install Emscripten
+```shell
+# https://emscripten.org/docs/getting_started/downloads.html#installation-instructions 
+git clone https://github.com/emscripten-core/emsdk.git
+cd emsdk
+./emsdk install latest
+./emsdk activate latest
+```
+
+### Activate Emscripten
+```shell
+source ./emsdk_env.sh
+```
+
+### Build
+```shell
+make assets/test.txt assets/test.pdf
+make cat.html
+```
+
+### Run
+```shell
+python3 serve.py
+```
+
