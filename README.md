@@ -1,10 +1,13 @@
 https://stackoverflow.com/questions/32912129/providing-stdin-to-an-emscripten-html-program
 =======
 ### TODO
-1. Save dummy text and PDF files into Emscripten FS
-2. Implement two Terminal commands: view and edit
-3. edit: Display text file from Emscripten FS into Monaco
-4. view: Display PDF file from Emscripten FS into PDF.js
+1. Unix cat
+2. TexLive / xetex.js
+3. ls
+4. wget to download tarball from github
+5. tar to extract github tarball
+6. commit to github
+7. Figure out split panes
 
 ### Links
 https://itnext.io/build-ffmpeg-webassembly-version-ffmpeg-js-part-3-ffmpeg-js-v0-1-0-transcoding-avi-to-mp4-f729e503a397

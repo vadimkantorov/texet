@@ -17,145 +17,52 @@
           padding: 0;
         }
         #editor {
-          height: 10%;
+          height: 30%;
           width: 100%;
           margin: 0;
           padding: 0;
           overflow: hidden;
         }
         #terminal {
-            height: 10%;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
-        #em {
             height: 20%;
             width: 100%;
             margin: 0;
             padding: 0;
-            overflow: hidden;
+            overflow: scroll;
+        }
+        #em {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: gray;
+            position: fixed;
+            bottom: 0;
         }
         #viewer {
-            height: 20%
+            height: 300px
         }
         .xterm-viewport {
             overflow-y: hidden !important
         }
+        /*#pdfcanvas{ width:100%; height: 100%}*/
       </style>
-
-
-    <style>
-      body {
-        font-family: arial;
-        margin: 0;
-        padding: none;
-      }
-
-      .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; }
-      div.emscripten { text-align: center; }      
-      div.emscripten_border { border: 1px solid black; }
-
-      #emscripten_logo {
-        display: inline-block;
-        margin: 0;
-      }
-
-      .spinner {
-        height: 30px;
-        width: 30px;
-        margin: 0;
-        margin-top: 20px;
-        margin-left: 20px;
-        display: inline-block;
-        vertical-align: top;
-
-        -webkit-animation: rotation .8s linear infinite;
-        -moz-animation: rotation .8s linear infinite;
-        -o-animation: rotation .8s linear infinite;
-        animation: rotation 0.8s linear infinite;
-
-        border-left: 5px solid rgb(235, 235, 235);
-        border-right: 5px solid rgb(235, 235, 235);
-        border-bottom: 5px solid rgb(235, 235, 235);
-        border-top: 5px solid rgb(120, 120, 120);
-        
-        border-radius: 100%;
-        background-color: rgb(189, 215, 46);
-      }
-
-      @-webkit-keyframes rotation {
-        from {-webkit-transform: rotate(0deg);}
-        to {-webkit-transform: rotate(360deg);}
-      }
-      @-moz-keyframes rotation {
-        from {-moz-transform: rotate(0deg);}
-        to {-moz-transform: rotate(360deg);}
-      }
-      @-o-keyframes rotation {
-        from {-o-transform: rotate(0deg);}
-        to {-o-transform: rotate(360deg);}
-      }
-      @keyframes rotation {
-        from {transform: rotate(0deg);}
-        to {transform: rotate(360deg);}
-      }
-
-      #status {
-        display: inline-block;
-        vertical-align: top;
-        margin-top: 30px;
-        margin-left: 20px;
-        font-weight: bold;
-        color: rgb(120, 120, 120);
-      }
-
-      #progress {
-        height: 20px;
-        width: 300px;
-      }
-
-      #controls {
-        display: inline-block;
-        float: right;
-        vertical-align: top;
-        margin-top: 30px;
-        margin-right: 20px;
-      }
-
-      #output {
-        width: 100%;
-        height: 200px;
-        margin: 0 auto;
-        margin-top: 10px;
-        border-left: 0px;
-        border-right: 0px;
-        padding-left: 0px;
-        padding-right: 0px;
-        display: block;
-        background-color: black;
-        color: white;
-        font-family: 'Lucida Console', Monaco, monospace;
-        outline: none;
-      }
-    </style>
 
 
     </head>
     <body>
       <div id="editor"></div>
       <div id="terminal"></div>
-      <div id="em">
-        <div class="spinner" id='spinner'></div>
-        <div class="emscripten" id="status">Downloading...</div>
-        <div class="emscripten">
-          <progress value="0" max="100" id="progress" hidden=1></progress>
-        </div>
-        <textarea id="output" rows="8"></textarea>
-      </div>
       <div id="viewer"><canvas id="pdfcanvas"></canvas></div>
+      <div id="em" class="emscripten">
+         <label id="status" for="progress">Downloading...</label>
+         <progress id="progress" value="32" max="100"> 32% </progress>
+      </div>
       <script>
+        function get_text()
+        {
+            return window.monaco_editor.getModel().getValue();
+        }
+
         function edit_file(contents)
         {
             window.monaco_editor.getModel().setValue(contents);
@@ -164,36 +71,36 @@
         function display_pdf(contents)
         {
             var loadingTask = pdfjsLib.getDocument({data: contents}).promise.then(function(pdf) {
-                  console.log('PDF loaded');
+              console.log('PDF loaded');
+              
+              // Fetch the first page
+              var pageNumber = 1;
+              pdf.getPage(pageNumber).then(function(page) {
+                  console.log('Page loaded');
                   
-                  // Fetch the first page
-                  var pageNumber = 1;
-                  pdf.getPage(pageNumber).then(function(page) {
-                          console.log('Page loaded');
-                          
-                          var scale = 1.5;
-                          var viewport = page.getViewport({scale: scale});
+                  var scale = 1.5;
+                  var viewport = page.getViewport({scale: scale});
 
-                          // Prepare canvas using PDF page dimensions
-                          var canvas = document.getElementById('pdfcanvas');
-                          var context = canvas.getContext('2d');
-                          canvas.height = viewport.height;
-                          canvas.width = viewport.width;
+                  // Prepare canvas using PDF page dimensions
+                  var canvas = document.getElementById('pdfcanvas');
+                  var context = canvas.getContext('2d');
+                  canvas.height = viewport.height;
+                  canvas.width = viewport.width;
 
-                          // Render PDF page into canvas context
-                          var renderContext = {
-                                    canvasContext: context,
-                                    viewport: viewport
-                                  };
-                          var renderTask = page.render(renderContext);
-                          renderTask.promise.then(function () {
-                                    console.log('Page rendered');
-                                  });
-                        });
-            }, function (reason) {
-                  // PDF loading error
-                  console.error(reason);
-            });
+                  // Render PDF page into canvas context
+                  var renderContext = {
+                            canvasContext: context,
+                            viewport: viewport
+                          };
+                  var renderTask = page.render(renderContext);
+                  renderTask.promise.then(function () {
+                            console.log('Page rendered');
+                          });
+                });
+        }, function (reason) {
+              // PDF loading error
+              console.error(reason);
+        });
 
         }
 
@@ -226,46 +133,64 @@
         
 
         //import { FitAddon } from 'fit.js';
-        var term = new Terminal();
+        window.terminal = new Terminal();
         //fitAddon = new FitAddon();
         //term.loadAddon(fitAddon);
-        term.open(document.getElementById('terminal'));
+        window.terminal.open(document.getElementById('terminal'));
         //fitAddon.fit();
-
+        window.terminal.prompt = () => window.terminal.write(' $ ');
+        window.terminal.prompt();
         var curLine = '';
-        term.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m $ ');
-        term.on('key', (key, ev) => {
-            if(ev.keyCode == 13)
+        window.terminal.on('key', (key, ev) => {
+            if(ev.keyCode == 8)
+            {
+                if(curLine.length > 0)
+                {
+                    curLine = curLine.slice(0, curLine.length - 1);
+                    window.terminal.write('\b \b');
+                }
+            }
+            else if(ev.keyCode == 13)
             {
                 //https://stackoverflow.com/questions/46943653/how-to-pass-char-array-to-emscripten-compiled-code
                 //var result = Module.ccall('main', 'number', ['number', ], args);
                 
-                term.write('\r\n');
-                const {cmd, arg} = curLine.split(' ');
-                
-                if(cmd == 'edit')
+                window.terminal.write('\r\n');
+                const [cmd, arg] = curLine.split(' ');
+                if (cmd == '')
+                {
+                }
+                else if(cmd == 'edit')
                 {
                     const contents = FS.readFile(arg, {encoding : 'utf8'});
                     edit_file(contents);
+                    window.terminal.write('ok!\r\n');
                 }
                 else if(cmd == 'show')
                 {
                     const contents = FS.readFile(arg, {encoding : 'binary'});
                     display_pdf(contents);
+                    window.terminal.write('ok!\r\n');
+                }
+                else if(cmd == 'save')
+                {
+                    FS.writeFile(arg, get_text());
+                    window.terminal.write('ok!\r\n');
                 }
                 else
                 {
-                    term.write('Unknown command: ' + curLine);
+                    window.terminal.write(cmd + ': command not found\r\n');
                 }
-                
-                term.write('\r\n');
+                window.terminal.prompt();
                 curLine = '';
             }
             else
             {
                 curLine += key;
-                term.write(key);
+                window.terminal.write(key);
             }
+            
+            //window.terminal.element.scrollIntoView(true);
         });
         
         require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@latest/min/vs' }});
@@ -280,12 +205,7 @@
 
         require(["vs/editor/editor.main"], function () {
           window.monaco_editor = monaco.editor.create(document.getElementById('editor'), {
-            value: [
-              'function x() {',
-              '\tconsole.log("Hello world!");',
-              '}'
-            ].join('\n'),
-            language: 'javascript',
+            value: 'Type [edit assets/test.txt]',
             theme: 'vs-dark'
           });
         });
@@ -295,26 +215,16 @@
     <script type='text/javascript'>
       var statusElement = document.getElementById('status');
       var progressElement = document.getElementById('progress');
-      var spinnerElement = document.getElementById('spinner');
 
       var Module = {
-          noInitialRun : true,
+        noInitialRun : true,
         preRun: [],
         postRun: [],
         print: (function() {
-          var element = document.getElementById('output');
-          if (element) element.value = ''; // clear browser cache
           return function(text) {
             if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-            // These replacements are necessary if you render to raw HTML
-            //text = text.replace(/&/g, "&amp;");
-            //text = text.replace(/</g, "&lt;");
-            //text = text.replace(/>/g, "&gt;");
-            //text = text.replace('\n', '<br>', 'g');
-            console.log(text);
             if (element) {
-              element.value += text + "\n";
-              element.scrollTop = element.scrollHeight; // focus on bottom
+              window.terminal.write(text + '\r\n');
             }
           };
         })(),
@@ -334,15 +244,11 @@
             text = m[1];
             progressElement.value = parseInt(m[2])*100;
             progressElement.max = parseInt(m[4])*100;
-            progressElement.hidden = false;
-            spinnerElement.hidden = false;
           } else {
             progressElement.value = null;
             progressElement.max = null;
-            progressElement.hidden = true;
-            if (!text) spinnerElement.style.display = 'none';
           }
-          statusElement.innerHTML = text;
+                                            statusElement.innerHTML = text.length > 0 ? text : 'Downloaded!';
         },
         totalDependencies: 0,
         monitorRunDependencies: function(left) {
@@ -352,9 +258,7 @@
       };
       Module.setStatus('Downloading...');
       window.onerror = function(event) {
-        // TODO: do not warn on ok events like simulating an infinite loop or exitStatus
         Module.setStatus('Exception thrown, see JavaScript console');
-        spinnerElement.style.display = 'none';
         Module.setStatus = function(text) {
           if (text) Module.printErr('[post-exception status] ' + text);
         };
