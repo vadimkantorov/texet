@@ -156,15 +156,13 @@
       </div>
       <div id="viewer"><canvas id="pdfcanvas"></canvas></div>
       <script>
-        function edit_file(file_name)
+        function edit_file(contents)
         {
-            const contents = FS.readFile(file_name, {encoding : 'utf8'});
             window.monaco_editor.getModel().setValue(contents);
         }
 
-        function display_pdf(file_name)
+        function display_pdf(contents)
         {
-            const contents = FS.readFile(file_name);
             var loadingTask = pdfjsLib.getDocument({data: contents}).promise.then(function(pdf) {
                   console.log('PDF loaded');
                   
@@ -241,17 +239,26 @@
             {
                 //https://stackoverflow.com/questions/46943653/how-to-pass-char-array-to-emscripten-compiled-code
                 //var result = Module.ccall('main', 'number', ['number', ], args);
+                
                 term.write('\r\n');
-                const contents = FS.readFile('assets/test.txt', {encoding : 'utf8'});
-                const json_object = {
-                    value: contents,
-                    language: 'javascript',
-                    theme: 'vs-dark'
-                };
-                window.monaco_editor.getModel().setValue(contents);
-                    term.write(contents);
+                const {cmd, arg} = curLine.split(' ');
+                
+                if(cmd == 'edit')
+                {
+                    const contents = FS.readFile(arg, {encoding : 'utf8'});
+                    edit_file(contents);
+                }
+                else if(cmd == 'show')
+                {
+                    const contents = FS.readFile(arg, {encoding : 'binary'});
+                    display_pdf(contents);
+                }
+                else
+                {
+                    term.write('Unknown command: ' + curLine);
+                }
+                
                 term.write('\r\n');
-                console.log(curLine);
                 curLine = '';
             }
             else
