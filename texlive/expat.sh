@@ -5,10 +5,6 @@ GLOBAL_CFLAGS=-O3
 mkdir -p $DIST_DIR
 
 pushd expat/expat
-git reset --hard
-for file in ${BASE_DIR}patches/expat/*.patch; do
-    patch -d "${BASE_DIR}expat" -Np1 -i ${file}
-done
 mkdir -p build
 cd build 
 emcmake cmake \
