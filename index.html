@@ -156,7 +156,48 @@
       </div>
       <div id="viewer"><canvas id="pdfcanvas"></canvas></div>
       <script>
+        function edit_file(file_name)
+        {
+            const contents = FS.readFile(file_name, {encoding : 'utf8'});
+            window.monaco_editor.getModel().setValue(contents);
+        }
 
+        function display_pdf(file_name)
+        {
+            const contents = FS.readFile(file_name);
+            var loadingTask = pdfjsLib.getDocument({data: contents}).promise.then(function(pdf) {
+                  console.log('PDF loaded');
+                  
+                  // Fetch the first page
+                  var pageNumber = 1;
+                  pdf.getPage(pageNumber).then(function(page) {
+                          console.log('Page loaded');
+                          
+                          var scale = 1.5;
+                          var viewport = page.getViewport({scale: scale});
+
+                          // Prepare canvas using PDF page dimensions
+                          var canvas = document.getElementById('pdfcanvas');
+                          var context = canvas.getContext('2d');
+                          canvas.height = viewport.height;
+                          canvas.width = viewport.width;
+
+                          // Render PDF page into canvas context
+                          var renderContext = {
+                                    canvasContext: context,
+                                    viewport: viewport
+                                  };
+                          var renderTask = page.render(renderContext);
+                          renderTask.promise.then(function () {
+                                    console.log('Page rendered');
+                                  });
+                        });
+            }, function (reason) {
+                  // PDF loading error
+                  console.error(reason);
+            });
+
+        }
 
         // atob() is used to convert base64 encoded PDF to binary-like data.
         // (See also https://developer.mozilla.org/en-US/docs/Web/API/WindowBase64/
@@ -183,39 +224,7 @@
         pdfjsLib.GlobalWorkerOptions.workerSrc = '//mozilla.github.io/pdf.js/build/pdf.worker.js';
 
         // Using DocumentInitParameters object to load binary data.
-        var loadingTask = pdfjsLib.getDocument({data: pdfData});
-        loadingTask.promise.then(function(pdf) {
-              console.log('PDF loaded');
-              
-              // Fetch the first page
-              var pageNumber = 1;
-              pdf.getPage(pageNumber).then(function(page) {
-                      console.log('Page loaded');
-                      
-                      var scale = 1.5;
-                      var viewport = page.getViewport({scale: scale});
-
-                      // Prepare canvas using PDF page dimensions
-                      var canvas = document.getElementById('pdfcanvas');
-                      var context = canvas.getContext('2d');
-                      canvas.height = viewport.height;
-                      canvas.width = viewport.width;
-
-                      // Render PDF page into canvas context
-                      var renderContext = {
-                                canvasContext: context,
-                                viewport: viewport
-                              };
-                      var renderTask = page.render(renderContext);
-                      renderTask.promise.then(function () {
-                                console.log('Page rendered');
-                              });
-                    });
-        }, function (reason) {
-              // PDF loading error
-              console.error(reason);
-        });
-
+        display_pdf(pdfData);
         
 
         //import { FitAddon } from 'fit.js';
