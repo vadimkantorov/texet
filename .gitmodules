@@ -1,0 +1,28 @@
+#[submodule "texlive/texliveass"]
+#	path = texlive/texliveass
+#	url = https://github.com/libass/libass.git
+#	ignore = dirty
+#[submodule "texlive/fribidi"]
+#	path = texlive/fribidi
+#	url = https://github.com/fribidi/fribidi.git
+#	ignore = dirty
+[submodule "texlive/fontconfig"]
+	path = texlive/fontconfig
+	url = https://gitlab.freedesktop.org/fontconfig/fontconfig.git
+	ignore = dirty
+[submodule "texlive/freetype"]
+	path = texlive/freetype
+	url = https://git.savannah.gnu.org/git/freetype/freetype2.git
+	ignore = dirty
+[submodule "texlive/expat"]
+	path = texlive/expat
+	url = https://github.com/libexpat/libexpat.git
+	ignore = dirty
+#[submodule "texlive/harfbuzz"]
+#	path = texlive/harfbuzz
+#	url = https://github.com/harfbuzz/harfbuzz.git
+#	ignore = dirty
+#[submodule "texlive/brotli"]
+#	path = texlive/brotli
+#	url = https://github.com/google/brotli
+#	ignore = dirty
