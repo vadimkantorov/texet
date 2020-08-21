@@ -67,5 +67,7 @@ make cat.html
 ### Run
 ```shell
 python3 serve.py
+
+open https://localhost:8080
 ```
 
