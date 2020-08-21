@@ -1,5 +1,3 @@
-https://stackoverflow.com/questions/32912129/providing-stdin-to-an-emscripten-html-program
-=======
 ### TODO
 1. Unix cat
 2. TexLive / xetex.js
@@ -10,6 +8,8 @@ https://stackoverflow.com/questions/32912129/providing-stdin-to-an-emscripten-ht
 7. Figure out split panes
 
 ### Links
+https://stackoverflow.com/questions/32912129/providing-stdin-to-an-emscripten-html-program
+
 https://itnext.io/build-ffmpeg-webassembly-version-ffmpeg-js-part-3-ffmpeg-js-v0-1-0-transcoding-avi-to-mp4-f729e503a397
 
 https://medium.com/codingtown/xterm-js-terminal-2b19ccd2a52
