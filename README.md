@@ -6,6 +6,8 @@
 
 ### Links
 
+https://medium.com/codingtown/xterm-js-terminal-2b19ccd2a52
+
 https://jsfiddle.net/pdfjs/wagvs9Lf/
 
 https://mozilla.github.io/pdf.js/examples/index.html#interactive-examples
