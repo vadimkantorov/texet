@@ -1,22 +1,3 @@
-# Copyright David Xu, 2016
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy,
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in all
-# copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
 MAKEFLAGS += --no-builtin-rules # --warn-undefined-variables
 .SUFFIXES:
 
@@ -36,12 +17,9 @@ EM_LINK_OPT_WORKAROUND_FLAGS = -O3
 EM_LINK_OPT_REGULAR_FLAGS = -O3 --closure 1
 EM_LINK_FLAGS =
 
-# Uncomment to use the system installation of TeX Live to build xelatex.fmt.
-# USE_SYSTEM_TL = 1
-
 # Contains native builds of tools used later when compiling to JavaScript
-NATIVE_BUILD_DIR = build-native/
-EMSCRIPTEN_BUILD_DIR = build-js/
+NATIVE_BUILD_DIR = build/native/
+EMSCRIPTEN_BUILD_DIR = build/js/
 SOURCES_DIR = build-sources/
 
 VERBOSE_LOG = $(abspath make.log)
@@ -65,9 +43,6 @@ XETEX_JS = xetex.js
 XELATEX_JS = xelatex.js
 XELATEX_EXE = xelatex
 XETEX_WORKER_JS = xetex.worker.js
-XDVIPDFMX_EXE = xdvipdfmx
-XDVIPDFMX_JS = xdvipdfmx.js
-XDVIPDFMX_WORKER_JS = xdvipdfmx.worker.js
 
 XETEX_ARCHIVE = xetex-0.9999.3.tar.bz2
 XETEX_SOURCE_DIR = $(SOURCES_DIR)xetex-0.9999.3/
@@ -82,7 +57,8 @@ INSTALL_TL_UNX_ARCHIVE = install-tl-unx.tar.gz
 INSTALL_TL_UNX_ARCHIVE_URL = http://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz
 
 # The Emscripten site recommends that we generate .so files over .a files...
-LIB_FREETYPE build/lib/libfreetype.a
+#LIB_FREETYPE = build/lib/libfreetype.a
+LIB_FREETYPE = $(XETEX_BUILD_DIR)libs/freetype2/ft-build/.libs/libfreetype.a
 LIB_EXPAT = build/lib/libexpat.a
 # Using libfontconfig.a mysteriously fails a configure check (and final link
 # step) with:
@@ -101,6 +77,16 @@ LIB_FONTCONFIG = build/lib/libfontconfig.a
 #
 #
 
+$(LIB_FREETYPE): build-js-xetex-configured.stamp $(NATIVE_BUILD_DIR)libs/freetype2/ft-build/apinames
+	echo '>>>' Building xetex libraries...
+	if ! emmake $(MAKE) -C $(XETEX_BUILD_DIR)libs >> $(VERBOSE_LOG); then \
+		echo '>>>' First make attempt for xetex libraries failed. && \
+		echo '>>>' Replacing freetype2 apinames binary from $(NATIVE_BUILD_DIR)... && \
+		cp --preserve=mode $(NATIVE_BUILD_DIR)libs/freetype2/ft-build/apinames $(XETEX_BUILD_DIR)libs/freetype2/ft-build/apinames && \
+		emmake $(MAKE) -C $(XETEX_BUILD_DIR)libs >> $(VERBOSE_LOG); \
+	fi
+	test -s $@ && touch $@
+
 
 XETEX_CONF =										\
 	--enable-compiler-warnings=yes							\
@@ -115,15 +101,15 @@ XETEX_CONF =										\
 	--disable-multithreaded								\
 	--enable-silent-rules								\
 	--enable-dump-share								\
-	--with-fontconfig-includes=$(abspath $(FONTCONFIG_SOURCE_DIR))			\
-	--with-fontconfig-libdir='. $(abspath $(LIB_FONTCONFIG))			\
-		-L$(abspath $(dir $(LIB_EXPAT))) -lexpat'				\
 	--with-freetype2-includes=$(abspath						\
 		$(XETEX_SOURCE_DIR)source/libs/freetype2/freetype-2.4.11/include/)	\
 	--with-freetype2-libdir=$(abspath $(XETEX_BUILD_DIR)libs/freetype2/)		\
 	--without-system-ptexenc							\
 	--without-system-kpathsea							\
-	--without-mf-x-toolkit --without-x
+	--without-mf-x-toolkit --without-x #\
+
+#	--with-fontconfig-includes=$(abspath $(FONTCONFIG_SOURCE_DIR))			\
+#	--with-fontconfig-libdir='. $(abspath $(LIB_FONTCONFIG))	-L$(abspath $(dir $(LIB_EXPAT))) -lexpat'				\
 
 # Apparently *just* --enable-web2c doesn't work and breaks the xetex build in a
 # cryptic way "Cannot find install.texi"
@@ -141,19 +127,6 @@ NATIVE_TOOLS_CONF =				\
 	--without-system-kpathsea		\
 	--without-mf-x-toolkit --without-x
 
-ifdef USE_SYSTEM_LIBS
-system_libs_opts =				\
-	--with-system-poppler			\
-	--with-system-freetype2			\
-	--with-system-libpng			\
-	--with-system-teckit			\
-	--with-system-zlib			\
-	--with-system-icu			\
-	--with-system-graphite2			\
-	--with-system-harfbuzz
-NATIVE_TOOLS_CONF += $(system_libs_opts)
-XETEX_CONF += $(system_libs_opts)
-else
 without_system_libs_opts =			\
 	--enable-cxx-runtime-hack		\
 	--without-system-poppler		\
@@ -166,43 +139,22 @@ without_system_libs_opts =			\
 	--without-system-harfbuzz
 NATIVE_TOOLS_CONF += $(without_system_libs_opts)
 XETEX_CONF += $(without_system_libs_opts)
-endif
-
 
 .PHONY: all
-all: $(XETEX_JS) $(XELATEX_JS) $(XELATEX_EXE) $(XETEX_WORKER_JS) $(XDVIPDFMX_EXE) $(XDVIPDFMX_JS) $(XDVIPDFMX_WORKER_JS) xelatex.fmt texlive.lst
+all: $(XETEX_JS) $(XELATEX_JS) $(XELATEX_EXE) $(XETEX_WORKER_JS) xelatex.fmt texlive.lst
 
 .PHONY: texlive-manifest
 texlive-manifest: texlive.lst
 
 .PHONY: clean-js-artifacts-only
 clean-js-artifacts-only:
-	rm -f $(XETEX_JS) $(XETEX_JS).mem $(XELATEX_EXE) $(XELATEX_JS) $(XELATEX_JS).mem $(XETEX_WORKER_JS) $(XETEX_WORKER_JS).mem $(XDVIPDFMX_EXE) $(XDVIPDFMX_JS) $(XDVIPDFMX_JS).mem $(XDVIPDFMX_WORKER_JS) $(XDVIPDFMX_WORKER_JS).mem
-
-.PHONY: confirm-clean
-confirm-clean:
-	@while :; do							\
-		read -p 'Really clean (yes/no)? ' choice;		\
-		case "$$choice" in					\
-			yes|ye|y|YES|YE|Y) exit;;			\
-			n|N|no|NO) exit -1;;				\
-			*) echo -n 'Please enter either yes or no. ';;	\
-		esac;							\
-	done
-	@while :; do							\
-		read -p 'Are you absolutely sure (yes/no)? ' choice;	\
-		case "$$choice" in					\
-			yes|ye|y|YES|YE|Y) exit;;			\
-			n|N|no|NO) exit -1;;				\
-			*) echo -n 'Please enter either yes or no. ';;	\
-		esac;							\
-	done
+	rm -f $(XETEX_JS) $(XETEX_JS).mem $(XELATEX_EXE) $(XELATEX_JS) $(XELATEX_JS).mem $(XETEX_WORKER_JS) $(XETEX_WORKER_JS).mem 
 
 .PHONY: clean-js
-clean-js: confirm-clean
+clean-js: 
 	rm -rf $(EMSCRIPTEN_BUILD_DIR)
 	rm -rf build-native-tools.stamp build-js-xetex-configured.stamp build-js-xetex-toplevel.stamp
-	rm -f $(XETEX_JS) $(XETEX_JS).mem $(XELATEX_EXE) $(XELATEX_JS) $(XELATEX_JS).mem $(XETEX_WORKER_JS) $(XETEX_WORKER_JS).mem $(XDVIPDFMX_EXE) xdvipdfmx.bc $(XDVIPDFMX_JS) $(XDVIPDFMX_JS).mem $(XDVIPDFMX_WORKER_JS) $(XDVIPDFMX_WORKER_JS).mem
+	rm -f $(XETEX_JS) $(XETEX_JS).mem $(XELATEX_EXE) $(XELATEX_JS) $(XELATEX_JS).mem $(XETEX_WORKER_JS) $(XETEX_WORKER_JS).mem 
 	rm -f $(VERBOSE_LOG)
 
 .PHONY: clean
@@ -216,7 +168,6 @@ clean: clean-js
 distclean: clean
 	rm -f $(LATEX_BASE_ARCHIVE)
 	rm -f $(INSTALL_TL_UNX_ARCHIVE)
-	rm -f $(EXPAT_ARCHIVE) $(FONTCONFIG_ARCHIVE)
 	rm -f $(XETEX_ARCHIVE)
 
 
@@ -226,56 +177,18 @@ $(SOURCES_DIR):
 $(XETEX_ARCHIVE):
 	curl -L $(XETEX_ARCHIVE_URL) -o $@
 
-# Patch some freetype macros to avoid multiply-defined symbols because
-# Emscripten assumes a monolithic model for linking.
-$(XETEX_SOURCE_DIR)build.sh: $(XETEX_ARCHIVE) | $(SOURCES_DIR)
-	tar xf $< -C $(SOURCES_DIR)
-	cd $(SOURCES_DIR) && patch -p0 < $$OLDPWD/freetype-internal-ftrfork.h.patch
-	test -s $@ && touch $@
-
-$(EXPAT_ARCHIVE):
-	curl -L $(EXPAT_ARCHIVE_URL) -o $@
-
-$(EXPAT_SOURCE_DIR)configure: $(EXPAT_ARCHIVE) | $(SOURCES_DIR)
-	tar xf $< -C $(SOURCES_DIR)
-	test -s $@ && touch $@
-
-$(LIB_EXPAT): $(EXPAT_SOURCE_DIR)configure
-	mkdir -p $(EXPAT_BUILD_DIR)
-	cd $(EXPAT_BUILD_DIR) && emconfigure $$OLDPWD/$(EXPAT_SOURCE_DIR)configure CFLAGS='-g -O3 -Wno-error=implicit-function-declaration' >> $(VERBOSE_LOG)
-	emmake $(MAKE) -C $(EXPAT_BUILD_DIR) >> $(VERBOSE_LOG)
-	test -s $@ && touch $@
-
-$(FONTCONFIG_ARCHIVE):
-	curl -L $(FONTCONFIG_ARCHIVE_URL) -o $@
-
-$(FONTCONFIG_SOURCE_DIR)configure: $(FONTCONFIG_ARCHIVE) | $(SOURCES_DIR)
-	tar xf $< -C $(SOURCES_DIR)
-	cd $(SOURCES_DIR) && patch -p0 < $$OLDPWD/fontconfig-fcstat.c.patch
-	test -s $@ && touch $@
-
-# Use XeTeX's version of libfreetype that we compiled to JS. We need
-# EMCONFIGURE_JS=2 to pass a configure check for fontconfig libraries because we
-# specified the JavaScript version of fontconfig in the top-most configuration.
-$(LIB_FONTCONFIG): $(FONTCONFIG_SOURCE_DIR)configure $(LIB_EXPAT) $(LIB_FREETYPE)
-	mkdir -p $(FONTCONFIG_BUILD_DIR)
-	cd $(FONTCONFIG_BUILD_DIR) && EMCONFIGURE_JS=2 CONFIG_SITE=$(JS_CONFIG_SITE_ABS) emconfigure $$OLDPWD/$(FONTCONFIG_SOURCE_DIR)configure --enable-static --with-expat-includes=$$OLDPWD/$(EXPAT_SOURCE_DIR)lib/ FREETYPE_CFLAGS="-g -O3 -I$$OLDPWD/$(XETEX_BUILD_DIR)libs/freetype2/ -I$$OLDPWD/$(XETEX_BUILD_DIR)libs/freetype2/freetype2/" FREETYPE_LIBS=$$OLDPWD/$(LIB_FREETYPE) LDFLAGS=-L$$OLDPWD/$(EXPAT_BUILD_DIR).libs/ >> $(VERBOSE_LOG)
-	emmake $(MAKE) -C $(FONTCONFIG_BUILD_DIR) >> $(VERBOSE_LOG)
-	test -s $@ && touch $@
-
 NATIVE_WEB2C = $(addprefix $(NATIVE_BUILD_DIR)texk/web2c/, ctangle otangle tangle tangleboot tie)
 NATIVE_WEB2C_WEB2C = $(addprefix $(NATIVE_BUILD_DIR)texk/web2c/web2c/, fixwrites makecpool splitup web2c)
 NATIVE_WEB2C_TOOLS = $(NATIVE_WEB2C) $(NATIVE_WEB2C_WEB2C)
 NATIVE_ICU_TOOLS = $(addprefix $(NATIVE_BUILD_DIR)libs/icu/icu-build/bin/, icupkg pkgdata)
 NATIVE_TOOLS = $(NATIVE_WEB2C_TOOLS) $(NATIVE_BUILD_DIR)libs/freetype2/ft-build/apinames
-NATIVE_XETEX = $(NATIVE_BUILD_DIR)texk/web2c/xetex
 
 .PHONY: native-tools
 native-tools: $(NATIVE_TOOLS)
 
 $(NATIVE_TOOLS): build-native-tools.stamp
 
-build-native-tools.stamp: $(XETEX_SOURCE_DIR)build.sh
+build-native-tools.stamp: 
 	@echo '>>>' Building native XeTeX distribution for compilation tools...
 	mkdir -p $(NATIVE_BUILD_DIR)
 	cd $(NATIVE_BUILD_DIR) && $$OLDPWD/$(XETEX_SOURCE_DIR)source/configure $(NATIVE_TOOLS_CONF)
@@ -287,10 +200,6 @@ build-native-tools.stamp: $(XETEX_SOURCE_DIR)build.sh
 	$(MAKE) -C $(NATIVE_BUILD_DIR)libs/icu/ >> $(VERBOSE_LOG)
 	$(MAKE) -C $(NATIVE_BUILD_DIR)libs/icu/icu-build/ >> $(VERBOSE_LOG)
 	touch $@
-
-$(NATIVE_XETEX): build-native-tools.stamp
-	$(MAKE) -C $(NATIVE_BUILD_DIR)texk/web2c/ xetex >> $(VERBOSE_LOG)
-	test -s $@ && touch $@
 
 $(LIB_FREETYPE): build-js-xetex-configured.stamp $(NATIVE_BUILD_DIR)libs/freetype2/ft-build/apinames
 	echo '>>>' Building xetex libraries...
@@ -371,27 +280,17 @@ $(XELATEX_EXE): $(XELATEX_JS)
 $(XETEX_WORKER_JS): $(xetex_bc) xetex.pre.worker.js post.worker.js
 	emcc $(EM_LINK_FLAGS) $(EM_LINK_OPT_REGULAR_FLAGS) --pre-js xetex.pre.worker.js --post-js post.worker.js -o $@ $(xetex_link) -s INVOKE_RUN=0 -s TOTAL_MEMORY=536870912 -s EXPORTED_RUNTIME_METHODS=[] -s ERROR_ON_UNDEFINED_SYMBOLS=0
 
-xdvipdfmx.bc: $(xdvipdfmx_bc)
-	ln -srf $< $@
-
-$(XDVIPDFMX_JS): xdvipdfmx.bc xdvipdfmx.pre.js
-	emcc $(EM_LINK_FLAGS) $(EM_LINK_OPT_WORKAROUND_FLAGS) --pre-js xdvipdfmx.pre.js $< -o $@ -s EXPORTED_RUNTIME_METHODS=[] -s ERROR_ON_UNDEFINED_SYMBOLS=0
-
-$(XDVIPDFMX_WORKER_JS): xdvipdfmx.bc xdvipdfmx.pre.worker.js post.worker.js
-	emcc $(EM_LINK_FLAGS) $(EM_LINK_OPT_REGULAR_FLAGS) --pre-js xdvipdfmx.pre.worker.js --post-js post.worker.js $< -o $@ -s INVOKE_RUN=0 -s EXPORTED_RUNTIME_METHODS=[] -s ERROR_ON_UNDEFINED_SYMBOLS=0
-
-.DELETE_ON_ERROR: $(XDVIPDFMX_EXE)
-$(XDVIPDFMX_EXE): $(XDVIPDFMX_JS)
-	echo '#!/usr/bin/env node' > $@
-	cat $< >> $@
-	chmod a+x $@
-
 
 ###############################################################################
 # xelatex.fmt
 ###############################################################################
 $(LATEX_BASE_ARCHIVE):
 	curl -L $(LATEX_BASE_ARCHIVE_URL) -o $@
+
+$(XETEX_SOURCE_DIR)build.sh: $(XETEX_ARCHIVE) | $(SOURCES_DIR)
+	tar xf $< -C $(SOURCES_DIR)
+	cd $(SOURCES_DIR)
+	test -s $@ && touch $@
 
 $(LATEX_BASE_SOURCE_DIR): $(LATEX_BASE_ARCHIVE)
 	unzip -o $<
@@ -401,19 +300,9 @@ $(LATEX_BASE_SOURCE_DIR): $(LATEX_BASE_ARCHIVE)
 xelatex.fmt: $(LATEX_BASE_SOURCE_DIR)latex.fmt
 	cp $< $@
 
-ifdef USE_SYSTEM_TL
-
-$(LATEX_BASE_SOURCE_DIR)latex.fmt: $(LATEX_BASE_SOURCE_DIR)
-	TEXINPUTS=$(LATEX_BASE_SOURCE_DIR) xetex -ini -etex -output-directory=$(LATEX_BASE_SOURCE_DIR) unpack.ins
-	TEXINPUTS=$(LATEX_BASE_SOURCE_DIR): xetex -ini -etex -output-directory=$(LATEX_BASE_SOURCE_DIR) latex.ltx
-
-else
-
 $(LATEX_BASE_SOURCE_DIR)latex.fmt: $(XELATEX) $(LATEX_BASE_SOURCE_DIR) texlive-$(TEXLIVE_INSTALL_TYPE).stamp
 	TEXINPUTS=cwd/base/: ./$(XELATEX_EXE) -ini -etex -output-directory=cwd/base/ unpack.ins
 	TEXINPUTS=cwd/base/: ./$(XELATEX_EXE) -ini -etex -output-directory=cwd/base/ latex.ltx
-
-endif  # USE_SYSTEM_TL
 
 
 ###############################################################################

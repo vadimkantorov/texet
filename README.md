@@ -1,9 +1,9 @@
 ### TODO
 1. Unix cat
 2. TexLive / xetex.js
-3. ls
-4. wget to download tarball from github
-5. tar to extract github tarball
+3. Support recursive clone
+4. Support binary clone
+5. Wrap command exceptions as Terminal errors
 6. commit to github
 7. Figure out split panes
 

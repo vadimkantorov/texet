@@ -1,3 +1,13 @@
+EMSCRIPTEN_BUILD_DIR=build/js/
+XETEX_BUILD_DIR=${EMSCRIPTEN_BUILD_DIR}build-xetex/
+make build-js-xetex-configured.stamp
+emmake make -C ${XETEX_BUILD_DIR}libs CCexe=gcc
+#emmake make -C ${XETEX_BUILD_DIR}libs install
+
+
+exit 0
+
+
 
 BASE_DIR=$PWD/
 DIST_DIR=${BASE_DIR}build
