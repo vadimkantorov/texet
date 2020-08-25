@@ -5,7 +5,7 @@
 4. Support binary clone
 5. Wrap command exceptions as Terminal errors
 6. commit to github
-7. Figure out split panes
+7. Figure out Terminal sizing
 
 ### Links
 https://stackoverflow.com/questions/32912129/providing-stdin-to-an-emscripten-html-program
