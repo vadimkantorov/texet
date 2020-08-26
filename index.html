@@ -93,16 +93,16 @@
         function show(contents, file_path)
         {
             const imgcanvas = document.getElementById('imgcanvas'), pdfcanvas = document.getElementById('pdfcanvas');
-            if(file_path.endsWith('.png') || file_path.endsWith('.jpg'))
+            if(file_path.endsWith('.svg'))
+            {
+                [imgcanvas.hidden, pdfcanvas.hidden] = [false, true];
+                imgcanvas.src = `data:image/svg+xml;base64,` + btoa(String.fromCharCode.apply(null, contents));
+            }
+            else if(file_path.endsWith('.png') || file_path.endsWith('.jpg'))
             {
                 [imgcanvas.hidden, pdfcanvas.hidden] = [false, true];
                 const ext = file_path.endsWith('.png') ? 'png' : 'jpg';
                 imgcanvas.src = `data:image/${ext};base64,` + btoa(String.fromCharCode.apply(null, contents));
-                
-                //const blob = new Blob(contents, {type : 'image/' + ext});
-                //const reader = new FileReader();
-                //reader.onload = () => {imgcanvas.src = reader.result};
-                //reader.readAsDataURL(blob);
             }
             else if(file_path.endsWith('.pdf'))
             {
