@@ -8,6 +8,8 @@
 7. Figure out Terminal sizing
 
 ### Links
+https://stackoverflow.com/questions/59983250/there-is-any-standalone-version-of-the-treeview-component-of-vscode
+
 https://stackoverflow.com/questions/32912129/providing-stdin-to-an-emscripten-html-program
 
 https://itnext.io/build-ffmpeg-webassembly-version-ffmpeg-js-part-3-ffmpeg-js-v0-1-0-transcoding-avi-to-mp4-f729e503a397
