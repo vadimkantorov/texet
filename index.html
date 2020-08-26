@@ -38,7 +38,6 @@
         .xterm-viewport {
             overflow-y: hidden !important
         }
-        /*#pdfcanvas{ width:100%; height: 100%}*/
         #footer {
             width: 100%;
             margin: 0;
@@ -48,13 +47,14 @@
             position: fixed;
             bottom: 0; 
         }
+        /*#pdfcanvas{ width:100%; height: 100%}*/
       </style>
 
 
     </head>
     <body>
       <div id="editor"></div>
-      <div id="viewer"><canvas id="pdfcanvas"></canvas></div>
+      <div id="viewer"><img hidden id="imgcanvas"></img><canvas id="pdfcanvas"></canvas></div>
       <div id="terminal"></div>
       <div id="footer" class="emscripten">
          <label id="status" for="progress">Downloading Emscripten...</label>
@@ -90,40 +90,53 @@
             window.monaco_editor.getModel().setValue(contents);
         }
 
-        function display_pdf(contents)
+        function show(contents, file_path)
         {
-            var loadingTask = window.pdf.getDocument({data: contents}).promise.then(function(pdf) {
-              console.log('PDF loaded');
-              
-              // Fetch the first page
-              var pageNumber = 1;
-              pdf.getPage(pageNumber).then(function(page) {
-                  console.log('Page loaded');
-                  
-                  var scale = 1.5;
-                  var viewport = page.getViewport({scale: scale});
+            const imgcanvas = document.getElementById('imgcanvas'), pdfcanvas = document.getElementById('pdfcanvas');
+            if(file_path.endsWith('.png') || file_path.endsWith('.jpg'))
+            {
+                [imgcanvas.hidden, pdfcanvas.hidden] = [false, true];
+                const ext = file_path.endsWith('.png') ? 'png' : 'jpg';
+                imgcanvas.src = `data:image/${ext};base64,` + btoa(String.fromCharCode.apply(null, contents));
+                
+                //const blob = new Blob(contents, {type : 'image/' + ext});
+                //const reader = new FileReader();
+                //reader.onload = () => {imgcanvas.src = reader.result};
+                //reader.readAsDataURL(blob);
+            }
+            else if(file_path.endsWith('.pdf'))
+            {
+                [imgcanvas.hidden, pdfcanvas.hidden] = [true, false];
+                var loadingTask = window.pdf.getDocument({data: contents}).promise.then(function(pdf) {
+                    console.log('PDF loaded');
 
-                  // Prepare canvas using PDF page dimensions
-                  var canvas = document.getElementById('pdfcanvas');
-                  var context = canvas.getContext('2d');
-                  canvas.height = viewport.height;
-                  canvas.width = viewport.width;
+                    // Fetch the first page
+                    var pageNumber = 1;
+                    pdf.getPage(pageNumber).then(function(page) {
+                        console.log('Page loaded');
 
-                  // Render PDF page into canvas context
-                  var renderContext = {
+                        const scale = 1.5;
+                        const viewport = page.getViewport({scale: scale});
+
+                        // Prepare canvas using PDF page dimensions
+                        const context = pdfcanvas.getContext('2d');
+                        pdfcanvas.height = viewport.height;
+                        pdfcanvas.width = viewport.width;
+
+                        // Render PDF page into canvas context
+                        const renderContext = {
                             canvasContext: context,
                             viewport: viewport
-                          };
-                  var renderTask = page.render(renderContext);
-                  renderTask.promise.then(function () {
+                        };
+                        const renderTask = page.render(renderContext);
+                        renderTask.promise.then(function () {
                             console.log('Page rendered');
-                          });
+                        });
+                    });
+                }, function(reason) {
+                    console.error(reason);
                 });
-        }, function (reason) {
-              // PDF loading error
-              console.error(reason);
-        });
-
+            }
         }
 
         var pdfData = atob(
@@ -147,7 +160,7 @@
         window.pdf.GlobalWorkerOptions.workerSrc = '//mozilla.github.io/pdf.js/build/pdf.worker.js';
 
         // Using DocumentInitParameters object to load binary data.
-        display_pdf(pdfData);
+        show(pdfData, 'helloworld.pdf');
         
 
         //import { FitAddon } from 'fit.js';
@@ -175,39 +188,46 @@
                 
                 window.terminal.write('\r\n');
                 const [cmd, arg] = curLine.split(' ');
-                if (cmd == '')
+                try
                 {
+                    if (cmd == '')
+                    {
+                    }
+                    else if(cmd == 'ls')
+                    {
+                        const res = ls(arg);
+                        window.terminal.write(res.join(' '));
+                    }
+                    else if(cmd == 'clone')
+                    {
+                        await clone_repo(arg, 'repo');
+                        window.terminal.write('ok!');
+                    }
+                    else if(cmd == 'open')
+                    {
+                        const contents = FS.readFile(arg, {encoding : 'utf8'});
+                        open_file(contents);
+                        window.terminal.write('ok!');
+                    }
+                    else if(cmd == 'show')
+                    {
+                        const contents = FS.readFile(arg, {encoding : 'binary'});
+                        show(contents, arg);
+                        window.terminal.write('ok!');
+                    }
+                    else if(cmd == 'save')
+                    {
+                        FS.writeFile(arg, get_text());
+                        window.terminal.write('ok!');
+                    }
+                    else
+                    {
+                        window.terminal.write(cmd + ': command not found');
+                    }
                 }
-                else if(cmd == 'ls')
+                catch(err)
                 {
-                    const res = ls(arg);
-                    window.terminal.write(res.join(' '));
-                }
-                else if(cmd == 'clone')
-                {
-                    await clone_repo(arg, 'repo');
-                    window.terminal.write('ok!');
-                }
-                else if(cmd == 'open')
-                {
-                    const contents = FS.readFile(arg, {encoding : 'utf8'});
-                    open_file(contents);
-                    window.terminal.write('ok!');
-                }
-                else if(cmd == 'show')
-                {
-                    const contents = FS.readFile(arg, {encoding : 'binary'});
-                    display_pdf(contents);
-                    window.terminal.write('ok!');
-                }
-                else if(cmd == 'save')
-                {
-                    FS.writeFile(arg, get_text());
-                    window.terminal.write('ok!');
-                }
-                else
-                {
-                    window.terminal.write(cmd + ': command not found');
+                    window.terminal.write('Error: ' +  err.message);
                 }
                 window.terminal.write('\r\n');
                 window.terminal.prompt();

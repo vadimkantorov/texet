@@ -3,11 +3,13 @@
 2. TexLive / xetex.js
 3. Support recursive clone
 4. Support binary clone
-5. Wrap command exceptions as Terminal errors
+4. Ctrl+V, command history
 6. commit to github
 7. Figure out Terminal sizing
 
 ### Links
+https://git-scm.com/docs/gitrepository-layout
+
 https://stackoverflow.com/questions/32912129/providing-stdin-to-an-emscripten-html-program
 
 https://itnext.io/build-ffmpeg-webassembly-version-ffmpeg-js-part-3-ffmpeg-js-v0-1-0-transcoding-avi-to-mp4-f729e503a397
