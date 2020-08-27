@@ -7,6 +7,7 @@
 5. Store file sha hashes in .git directory
 6. clone into a matching directory, arg1/arg2
 7. Figure out Terminal sizing
+8. auto-cloning
 
 ### Links
 https://git-scm.com/docs/gitrepository-layout
