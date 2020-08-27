@@ -48,6 +48,10 @@ https://browsix.org/latex-demo-sync/
 
 https://github.com/tbfleming/em-shell
 
+https://developer.github.com/v3/repos/contents/#create-or-update-file-contents
+https://github.com/zrxiv/browserext/blob/master/backend.js
+http://www.levibotelho.com/development/commit-a-file-with-the-github-api/
+
 ### Install Emscripten
 ```shell
 # https://emscripten.org/docs/getting_started/downloads.html#installation-instructions 
