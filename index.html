@@ -61,7 +61,7 @@
          <progress id="progress" value="0" max="100">0%</progress>
       </div>
       <script>
-        async function clone_repo(https_path, repo_path)
+        async function clone(https_path, repo_path)
         {
             const resp = await fetch(https_path.replace('github.com', 'api.github.com/repos') + '/contents');
             const repo = await resp.json();
@@ -75,9 +75,19 @@
             }
         }
         
+        async function push(relative_file_path, repo_path)
+        {
+            console.log(relative_file_path, repo_path);
+        }
+        
         function get_text()
         {
             return window.monaco_editor.getModel().getValue();
+        }
+
+        function expanduser(path)
+        {
+            return path.replace('~', '/home');
         }
 
         function ls(path)
@@ -85,12 +95,22 @@
             return Object.keys(FS.lookupPath(path).node.contents);
         }
 
-        function open_file(contents)
+        function mkdir(path)
+        {
+            FS.mkdir(path);
+        }
+        
+        function cd(path)
+        {
+            FS.chdir(path);
+        }
+
+        function edit(contents)
         {
             window.monaco_editor.getModel().setValue(contents);
         }
 
-        function show(contents, file_path)
+        function open(contents, file_path)
         {
             const imgcanvas = document.getElementById('imgcanvas'), pdfcanvas = document.getElementById('pdfcanvas');
             if(file_path.endsWith('.svg'))
@@ -160,7 +180,7 @@
         window.pdf.GlobalWorkerOptions.workerSrc = '//mozilla.github.io/pdf.js/build/pdf.worker.js';
 
         // Using DocumentInitParameters object to load binary data.
-        show(pdfData, 'helloworld.pdf');
+        open(pdfData, 'helloworld.pdf');
         
 
         //import { FitAddon } from 'fit.js';
@@ -169,7 +189,7 @@
         //term.loadAddon(fitAddon);
         window.terminal.open(document.getElementById('terminal'));
         //fitAddon.fit();
-        window.terminal.prompt = () => window.terminal.write(' $ ');
+        window.terminal.prompt = () => window.terminal.write((typeof(FS) == 'undefined' ? '/' : FS.cwd()) + '$ ');
         window.terminal.prompt();
         var curLine = '';
         window.terminal.on('key', async (key, ev) => {
@@ -186,7 +206,9 @@
                 //https://stackoverflow.com/questions/46943653/how-to-pass-char-array-to-emscripten-compiled-code
                 //var result = Module.ccall('main', 'number', ['number', ], args);
                 
-                window.terminal.write('\r\n');
+                const newline = '\r\n';
+                const ok = 'ok!' + newline;
+                window.terminal.write(newline);
                 const [cmd, arg] = curLine.split(' ');
                 try
                 {
@@ -195,41 +217,48 @@
                     }
                     else if(cmd == 'ls')
                     {
-                        const res = ls(arg);
-                        window.terminal.write(res.join(' '));
+                        const res = ls(arg || '.');
+                        window.terminal.write(res.join(' ') + newline);
+                    }
+                    else if(cmd == 'mkdir')
+                    {
+                        mkdir(arg);
+                    }
+                    else if(cmd == 'cd')
+                    {
+                        cd(arg);
                     }
                     else if(cmd == 'clone')
                     {
-                        await clone_repo(arg, 'repo');
-                        window.terminal.write('ok!');
+                        await clone(arg, 'repo');
+                        window.terminal.write(ok);
+                    }
+                    else if(cmd == 'push')
+                    {
+                        await push(arg, 'repo');
+                        window.terminal.write(ok);
                     }
                     else if(cmd == 'open')
                     {
-                        const contents = FS.readFile(arg, {encoding : 'utf8'});
-                        open_file(contents);
-                        window.terminal.write('ok!');
-                    }
-                    else if(cmd == 'show')
-                    {
-                        const contents = FS.readFile(arg, {encoding : 'binary'});
-                        show(contents, arg);
-                        window.terminal.write('ok!');
+                        if(arg.endsWith('.pdf') || arg.endsWith('.jpg') || arg.endsWith('.png') || arg.endsWith('.svg'))
+                            open(FS.readFile(arg, {encoding : 'binary'}), arg);
+                        else
+                            edit(FS.readFile(arg, {encoding : 'utf8'}));
                     }
                     else if(cmd == 'save')
                     {
                         FS.writeFile(arg, get_text());
-                        window.terminal.write('ok!');
+                        window.terminal.write(ok);
                     }
                     else
                     {
-                        window.terminal.write(cmd + ': command not found');
+                        window.terminal.write(cmd + ': command not found' + newline);
                     }
                 }
                 catch(err)
                 {
-                    window.terminal.write('Error: ' +  err.message);
+                    window.terminal.write('Error: ' +  err.message + newline);
                 }
-                window.terminal.write('\r\n');
                 window.terminal.prompt();
                 curLine = '';
             }
