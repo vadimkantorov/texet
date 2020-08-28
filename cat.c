@@ -15,7 +15,7 @@ int main( int argc, char *argv[] )
 
     file = fopen (argv[1], "r");
     while (fgets (buf, BUFSIZE, file))
-        fputs (buf, stdout);
+        puts (buf);
 
     fclose (file);
 

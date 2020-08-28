@@ -78,10 +78,11 @@
 
 		class Guthub
 		{
-            constructor(auth_token)
+            constructor(auth_token, println)
             {
                 this.retry_delay_seconds = 2;
                 this.auth_token = auth_token;
+                this.println = println || (line => null);
             }
 
 			github_api_request(https_path, relative_url, method, body)
@@ -103,8 +104,11 @@
             
             async clone(https_path, repo_path)
             {
+                this.println(`Cloning into '${repo_path}'...`);
                 const resp = await this.github_api_request(https_path, '/contents');
                 const repo = await resp.json();
+                this.println(`remote: Enumerating objects: ${repo.length}, done.`);
+
                 FS.mkdir(repo_path);
                 FS.mkdir(repo_path + '/.git');
                 FS.writeFile(repo_path + '/.git/config', '[remote "origin"]\nurl = ' + https_path);
@@ -116,6 +120,7 @@
                     const file_path = `${repo_path}/${file.name}`;
                     FS.writeFile(file_path, contents);
                 }
+                this.println(`Unpacking objects: 100% (${repo.length}/${repo.length}), done.`);
             }
         
 			async push(file_path, message, retry)
@@ -144,15 +149,15 @@
                 return hash.slice(1);
             return '';
         }
-        async function clone(https_path, repo_path)
+        async function clone(https_path, repo_path, println)
         {
-            const gh = new Guthub(gh_auth_token());
+            const gh = new Guthub(gh_auth_token(), println);
             await gh.clone(https_path, repo_path);
         }
 
-        async function push(relative_file_path)
+        async function push(relative_file_path, println)
         {
-            const gh = new Guthub(gh_auth_token());
+            const gh = new Guthub(gh_auth_token(), println);
 			await gh.push(relative_file_path, 'guthub');
         }
         
@@ -163,7 +168,13 @@
 
         function expanduser(path)
         {
-            return path.replace('~', '/home');
+            return path.replace('~', '/home/web_user');
+        }
+
+        function pwd(collapseuser)
+        {
+            const cwd = typeof(FS) == 'undefined' ? '~' : FS.cwd();
+            return collapseuser == true ? cwd.replace('/home/web_user', '~') : cwd;
         }
 
         function ls(path)
@@ -265,7 +276,7 @@
         //term.loadAddon(fitAddon);
         window.terminal.open(document.getElementById('terminal'));
         //fitAddon.fit();
-        window.terminal.prompt = () => window.terminal.write((typeof(FS) == 'undefined' ? '/' : FS.cwd()) + '$ ');
+        window.terminal.prompt = () => window.terminal.write('emscripten:' + pwd(true) + '$ ');
         window.terminal.prompt();
         var curLine = '';
         window.terminal.on('key', async (key, ev) => {
@@ -279,22 +290,29 @@
             }
             else if(ev.keyCode == 13)
             {
-                //https://stackoverflow.com/questions/46943653/how-to-pass-char-array-to-emscripten-compiled-code
-                //var result = Module.ccall('main', 'number', ['number', ], args);
-                
                 const newline = '\r\n';
-                const ok = 'ok!' + newline;
-                window.terminal.write(newline);
+                const ok = 'ok!';
+                const println = line => window.terminal.write((line || '') + newline);
+                println();
                 const [cmd, arg] = curLine.split(' ');
                 try
                 {
                     if (cmd == '')
                     {
                     }
+                    else if(cmd == 'cat')
+                    {
+                        Module.callMain([arg]);
+                        //println();
+                    }
+                    else if(cmd == 'pwd')
+                    {
+                        println(pwd());
+                    }
                     else if(cmd == 'ls')
                     {
                         const res = ls(arg || '.');
-                        window.terminal.write(res.join(' ') + newline);
+                        println(res.join(' '));
                     }
                     else if(cmd == 'mkdir')
                     {
@@ -306,13 +324,13 @@
                     }
                     else if(cmd == 'clone')
                     {
-                        await clone(arg, 'repo');
-                        window.terminal.write(ok);
+                        const path = arg.split('/').pop();
+                        await clone(arg, path, println);
                     }
                     else if(cmd == 'push')
                     {
-                        await push(arg, 'repo');
-                        window.terminal.write(ok);
+                        await push(arg, println);
+                        println(ok);
                     }
                     else if(cmd == 'open')
                     {
@@ -324,16 +342,16 @@
                     else if(cmd == 'save')
                     {
                         FS.writeFile(arg, get_text());
-                        window.terminal.write(ok);
+                        println(ok);
                     }
                     else
                     {
-                        window.terminal.write(cmd + ': command not found' + newline);
+                        println(cmd + ': command not found');
                     }
                 }
                 catch(err)
                 {
-                    window.terminal.write('Error: ' +  err.message + newline);
+                    println('Error: ' +  err.message);
                 }
                 window.terminal.prompt();
                 curLine = '';
@@ -367,14 +385,12 @@
 
       var Module = {
         noInitialRun : true,
-        preRun: [],
+          preRun: [() => FS.chdir('/home/web_user')],
         postRun: [],
         print: (function() {
           return function(text) {
             if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-            if (element) {
-              window.terminal.write(text + '\r\n');
-            }
+            window.terminal.write(text + '\r\n');
           };
         })(),
         printErr: function(text) {

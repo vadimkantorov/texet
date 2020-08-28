@@ -18,7 +18,7 @@ test/test.tex: test
 	echo '\begin{document}Hello, world!\end{document}' >> test/test.tex
 
 cat.js: test/test.txt test/test.pdf test/test.png test/test.svg test/test.tex
-	emcc cat.c --preload-file test -s INVOKE_RUN=0 -s EXPORTED_FUNCTIONS='["_main"]' -s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' -o cat.js 
+	emcc cat.c --preload-file test@/home/web_user/test -s FORCE_FILESYSTEM=1 -s INVOKE_RUN=0 -s EXPORTED_FUNCTIONS='["_main"]' -s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap", "callMain"]' -o cat.js
 
 clean:
 	rm *.js *.data *.wasm

@@ -5,9 +5,14 @@
 4. Support binary clone
 4. Ctrl+V, command history
 5. Store file sha hashes in .git directory
-6. clone into a matching directory, arg1/arg2
+6. arg1/arg2
 7. Figure out Terminal sizing
 8. auto-cloning
+9. file tab auto-complete
+10. help command
+11. empty ls => print nothing
+12. clear command
+13. builtins
 
 ### Links
 https://git-scm.com/docs/gitrepository-layout
