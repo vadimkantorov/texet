@@ -1,4 +1,4 @@
-test:
+Gest:
 	mkdir -p test
 
 test/test.txt: test
@@ -17,8 +17,14 @@ test/test.tex: test
 	echo '\documentclass{article}' > test/test.tex
 	echo '\begin{document}Hello, world!\end{document}' >> test/test.tex
 
-cat.js: test/test.txt test/test.pdf test/test.png test/test.svg test/test.tex
-	emcc cat.c --preload-file test@/home/web_user/test -s FORCE_FILESYSTEM=1 -s INVOKE_RUN=0 -s EXPORTED_FUNCTIONS='["_main"]' -s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap", "callMain"]' -o cat.js
+emscriptenfs.js: test/test.txt test/test.pdf test/test.png test/test.svg test/test.tex
+	emcc emscriptenfs.c -o $@ --preload-file test@/home/web_user/test -s FORCE_FILESYSTEM=1 -s INVOKE_RUN=0 
+
+cat.js: 
+	emcc cat.c -o $@ -s INVOKE_RUN=0 -s EXPORTED_FUNCTIONS='["_main"]' -s EXPORTED_RUNTIME_METHODS='["callMain"]' -s MODULARIZE=1 -s EXPORT_NAME=cat
+
+cowsay.js: 
+	emcc cowsay.c -o $@ -s INVOKE_RUN=0 -s EXPORTED_FUNCTIONS='["_main"]' -s EXPORTED_RUNTIME_METHODS='["callMain"]' -s MODULARIZE=1 -s EXPORT_NAME=cowsay
 
 clean:
 	rm *.js *.data *.wasm

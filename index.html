@@ -7,6 +7,9 @@
       <link rel="stylesheet" href="https://unpkg.com/xterm@3.8.0/dist/xterm.css" />
       <script src="https://unpkg.com/xterm@3.8.0/dist/xterm.js"></script>
       <script src="https://unpkg.com/xterm@3.8.0/dist/addons/fit/fit.js"></script>
+      
+      <script async type="text/javascript" src="cat.js"></script>
+      <script async type="text/javascript" src="cowsay.js"></script>
       <script src="https://unpkg.com/monaco-editor@latest/min/vs/loader.js"></script>
       <style>
         
@@ -29,7 +32,7 @@
             float:right;
         }
         #terminal {
-            height:45%;
+            height:30%;
             width: 100%;
             margin: 0;
             padding: 0;
@@ -38,14 +41,15 @@
         .xterm-viewport {
             overflow-y: hidden !important
         }
-        #footer {
+        #status {
             width: 100%;
+            height: 20%;
             margin: 0;
             padding: 0;
             background-color: gray;
-            height: auto;
             position: fixed;
             bottom: 0; 
+            /*overflow-y: hidden !important*/
         }
         /*#pdfcanvas{ width:100%; height: 100%}*/
       </style>
@@ -56,10 +60,7 @@
       <div id="editor"></div>
       <div id="viewer"><img hidden id="imgcanvas"></img><canvas id="pdfcanvas"></canvas></div>
       <div id="terminal"></div>
-      <div id="footer" class="emscripten">
-         <label id="status" for="progress">Downloading Emscripten...</label>
-         <progress id="progress" value="0" max="100">0%</progress>
-      </div>
+      <textarea id="status" class="emscripten"></textarea>
       <script>
 		function delay(seconds)
 		{
@@ -303,7 +304,10 @@
                     else if(cmd == 'cat')
                     {
                         Module.callMain([arg]);
-                        //println();
+                    }
+                    else if(cmd == 'cowsay')
+                    {
+                        cowsay.callMain([arg]);
                     }
                     else if(cmd == 'pwd')
                     {
@@ -380,46 +384,30 @@
 
       </script>
     <script type='text/javascript'>
-      var statusElement = document.getElementById('status');
-      var progressElement = document.getElementById('progress');
+        let statusElement = document.getElementById('status');
 
-      var Module = {
-        noInitialRun : true,
-          preRun: [() => FS.chdir('/home/web_user')],
-        postRun: [],
-        print: (function() {
-          return function(text) {
-            if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-            window.terminal.write(text + '\r\n');
-          };
-        })(),
-        printErr: function(text) {
-          if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-          console.error(text);
-        },
-        setStatus: function(text) {
-          if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
-          if (text === Module.setStatus.last.text) return;
-          var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
-          var now = Date.now();
-          if (m && now - Module.setStatus.last.time < 30) return; // if this is a progress update, skip it if too soon
-          Module.setStatus.last.time = now;
-          Module.setStatus.last.text = text;
-          if (m) {
-            text = m[1];
-            progressElement.value = parseInt(m[2])*100;
-            progressElement.max = parseInt(m[4])*100;
-          } else {
-            progressElement.value = null;
-            progressElement.max = null;
-          }
-          statusElement.innerHTML = text.length > 0 ? text : 'Downloaded Emscripten!';
-        },
-        totalDependencies: 0,
-        monitorRunDependencies: function(left) {
-          this.totalDependencies = Math.max(this.totalDependencies, left);
-          Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
-        }
+        var Module = {
+            noInitialRun : true,
+            preRun: [() => FS.chdir('/home/web_user')],
+            print: (function() {
+                return function(text) {
+                    if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+                    window.terminal.write(text + '\r\n');
+                };
+            })(),
+            printErr: function(text) {
+                if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+                console.error(text);
+            },
+            setStatus: function(text) {
+                statusElement.value += text + '\n';
+                statusElement.scrollTop = statusElement.scrollHeight;
+            },
+            totalDependencies: 0,
+            monitorRunDependencies: function(left) {
+                this.totalDependencies = Math.max(this.totalDependencies, left);
+                Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+            }
       };
       Module.setStatus('Downloading Emscripten...');
       window.onerror = function(event) {
@@ -429,6 +417,6 @@
         };
       };
     </script>
-    <script async type="text/javascript" src="cat.js"></script>
+      <script async type="text/javascript" src="emscriptenfs.js"></script>
     </body>
   </html>
