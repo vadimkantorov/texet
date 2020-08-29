@@ -15,6 +15,8 @@
 13. builtins
 
 ### Links
+https://stackoverflow.com/questions/54466870/emscripten-offer-to-download-save-a-generated-memfs-file
+
 https://git-scm.com/docs/gitrepository-layout
 
 https://stackoverflow.com/questions/59983250/there-is-any-standalone-version-of-the-treeview-component-of-vscode

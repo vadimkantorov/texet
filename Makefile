@@ -1,4 +1,6 @@
-Gest:
+all: cat.js cowsay.js emscriptenfs.js
+	
+test:
 	mkdir -p test
 
 test/test.txt: test
@@ -18,10 +20,10 @@ test/test.tex: test
 	echo '\begin{document}Hello, world!\end{document}' >> test/test.tex
 
 emscriptenfs.js: test/test.txt test/test.pdf test/test.png test/test.svg test/test.tex
-	emcc emscriptenfs.c -o $@ --preload-file test@/home/web_user/test -s FORCE_FILESYSTEM=1 -s INVOKE_RUN=0 
+	emcc emscriptenfs.c -o $@ --preload-file test@/home/web_user/test -s FORCE_FILESYSTEM=1 -s EXPORTED_RUNTIME_METHODS='["FS"]' -s INVOKE_RUN=0 
 
 cat.js: 
-	emcc cat.c -o $@ -s INVOKE_RUN=0 -s EXPORTED_FUNCTIONS='["_main"]' -s EXPORTED_RUNTIME_METHODS='["callMain"]' -s MODULARIZE=1 -s EXPORT_NAME=cat
+	emcc cat.c -o $@ -s INVOKE_RUN=0 -s EXPORTED_FUNCTIONS='["_main"]' -s EXPORTED_RUNTIME_METHODS='["callMain","FS"]' -s MODULARIZE=1 -s EXPORT_NAME=cat
 
 cowsay.js: 
 	emcc cowsay.c -o $@ -s INVOKE_RUN=0 -s EXPORTED_FUNCTIONS='["_main"]' -s EXPORTED_RUNTIME_METHODS='["callMain"]' -s MODULARIZE=1 -s EXPORT_NAME=cowsay

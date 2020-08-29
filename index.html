@@ -1,67 +1,66 @@
 <!doctype html>
-  <html>
-    <head>
-      <script src="https://mozilla.github.io/pdf.js/build/pdf.js"></script>
-      <script src="https://mozilla.github.io/pdf.js/build/pdf.worker.js"></script>
-      
-      <link rel="stylesheet" href="https://unpkg.com/xterm@3.8.0/dist/xterm.css" />
-      <script src="https://unpkg.com/xterm@3.8.0/dist/xterm.js"></script>
-      <script src="https://unpkg.com/xterm@3.8.0/dist/addons/fit/fit.js"></script>
-      
-      <script async type="text/javascript" src="cat.js"></script>
-      <script async type="text/javascript" src="cowsay.js"></script>
-      <script src="https://unpkg.com/monaco-editor@latest/min/vs/loader.js"></script>
-      <style>
-        
-        html, body{
-          height: 100%;
-          width: 100%;
-          margin: 0;
-          padding: 0;
-        }
-        #editor
-        {
-            height:50%;
-            width: 50%;
-            float:left;
-        }
-        #viewer
-        {
-            height:50%;
-            width: 50%;
-            float:right;
-        }
-        #terminal {
-            height:30%;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-        }
-        .xterm-viewport {
-            overflow-y: hidden !important
-        }
-        #status {
-            width: 100%;
-            height: 20%;
-            margin: 0;
-            padding: 0;
-            background-color: gray;
-            position: fixed;
-            bottom: 0; 
-            /*overflow-y: hidden !important*/
-        }
-        /*#pdfcanvas{ width:100%; height: 100%}*/
-      </style>
+<html>
+	<head>
+		<script src="https://mozilla.github.io/pdf.js/build/pdf.js"></script>
+		<script src="https://mozilla.github.io/pdf.js/build/pdf.worker.js"></script>
+		
+		<link rel="stylesheet" href="https://unpkg.com/xterm@3.8.0/dist/xterm.css" />
+		<script src="https://unpkg.com/xterm@3.8.0/dist/xterm.js"></script>
+		<script src="https://unpkg.com/xterm@3.8.0/dist/addons/fit/fit.js"></script>
+		
+		<script async type="text/javascript" src="cat.js"></script>
+		<script async type="text/javascript" src="cowsay.js"></script>
+		<script src="https://unpkg.com/monaco-editor@latest/min/vs/loader.js"></script>
+		<style>
+            html, body{
+                height: 100%;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            #editor
+            {
+                height:50%;
+                width: 50%;
+                float:left;
+            }
+            #viewer
+            {
+                height:50%;
+                width: 50%;
+                float:right;
+            }
+            #terminal {
+                height:30%;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+            }
+            .xterm-viewport {
+                overflow-y: hidden !important
+            }
+            #status {
+                width: 100%;
+                height: 20%;
+                margin: 0;
+                padding: 0;
+                background-color: gray;
+                position: fixed;
+                bottom: 0; 
+                /*overflow-y: hidden !important*/
+            }
+            /*#pdfcanvas{ width:100%; height: 100%}*/
+		</style>
 
 
-    </head>
-    <body>
-      <div id="editor"></div>
-      <div id="viewer"><img hidden id="imgcanvas"></img><canvas id="pdfcanvas"></canvas></div>
-      <div id="terminal"></div>
-      <textarea id="status" class="emscripten"></textarea>
-      <script>
+	</head>
+	<body>
+		<div id="editor"></div>
+		<div id="viewer"><img hidden id="imgcanvas"></img><canvas id="pdfcanvas"></canvas></div>
+		<div id="terminal"></div>
+		<textarea id="status" class="emscripten"></textarea>
+		<script>
 		function delay(seconds)
 		{
 			return new Promise(resolve => setTimeout(resolve, seconds * 1000));
@@ -79,62 +78,62 @@
 
 		class Guthub
 		{
-            constructor(auth_token, println)
-            {
-                this.retry_delay_seconds = 2;
-                this.auth_token = auth_token;
-                this.println = println || (line => null);
-            }
+			constructor(auth_token, println)
+			{
+				this.retry_delay_seconds = 2;
+				this.auth_token = auth_token;
+				this.println = println || (line => null);
+			}
 
 			github_api_request(https_path, relative_url, method, body)
 			{
-                const api = https_path.replace('github.com', 'api.github.com/repos');
+				const api = https_path.replace('github.com', 'api.github.com/repos');
 				return fetch(api + relative_url, Object.assign({method : method || 'get', headers : Object.assign({Authorization : 'Basic ' + btoa(this.auth_token)}, body != null ? {'Content-Type' : 'application/json'} : {})}, body != null ? {body : JSON.stringify(body)} : {}));
 			}
 
-            read_https_path()
-            {
-                return FS.readFile('.git/config', {encoding : 'utf8'}).split('\n')[1].split(' ')[2];
-            }
+			read_https_path()
+			{
+				return FS.readFile('.git/config', {encoding : 'utf8'}).split('\n')[1].split(' ')[2];
+			}
 
-            read_githubcontents()
-            {
-                const path = '.git/githubapicontents.json';
-                return FS.analyzePath(path).exists ? JSON.parse(FS.readFile(path, {encoding : 'utf8'})) : [];
-            }
-            
-            async clone(https_path, repo_path)
-            {
-                this.println(`Cloning into '${repo_path}'...`);
-                const resp = await this.github_api_request(https_path, '/contents');
-                const repo = await resp.json();
-                this.println(`remote: Enumerating objects: ${repo.length}, done.`);
+			read_githubcontents()
+			{
+				const path = '.git/githubapicontents.json';
+				return FS.analyzePath(path).exists ? JSON.parse(FS.readFile(path, {encoding : 'utf8'})) : [];
+			}
+			
+			async clone(https_path, repo_path)
+			{
+				this.println(`Cloning into '${repo_path}'...`);
+				const resp = await this.github_api_request(https_path, '/contents');
+				const repo = await resp.json();
+				this.println(`remote: Enumerating objects: ${repo.length}, done.`);
 
-                FS.mkdir(repo_path);
-                FS.mkdir(repo_path + '/.git');
-                FS.writeFile(repo_path + '/.git/config', '[remote "origin"]\nurl = ' + https_path);
-                FS.writeFile(repo_path + '/.git/githubapicontents.json', JSON.stringify(repo));
-                for(const file of repo)
-                {
-                    const resp = await fetch(file.download_url);
-                    const contents = await resp.text();
-                    const file_path = `${repo_path}/${file.name}`;
-                    FS.writeFile(file_path, contents);
-                }
-                this.println(`Unpacking objects: 100% (${repo.length}/${repo.length}), done.`);
-            }
-        
+				FS.mkdir(repo_path);
+				FS.mkdir(repo_path + '/.git');
+				FS.writeFile(repo_path + '/.git/config', '[remote "origin"]\nurl = ' + https_path);
+				FS.writeFile(repo_path + '/.git/githubapicontents.json', JSON.stringify(repo));
+				for(const file of repo)
+				{
+					const resp = await fetch(file.download_url);
+					const contents = await resp.text();
+					const file_path = `${repo_path}/${file.name}`;
+					FS.writeFile(file_path, contents);
+				}
+				this.println(`Unpacking objects: 100% (${repo.length}/${repo.length}), done.`);
+			}
+		
 			async push(file_path, message, retry)
 			{
-                const content = FS.readFile(file_path, {encoding : 'utf8'});
-                let sha = this.read_githubcontents().filter(f => f.path == file_path);
-                sha = sha.length > 0 ? sha[0].sha : null;
+				const content = FS.readFile(file_path, {encoding : 'utf8'});
+				let sha = this.read_githubcontents().filter(f => f.path == file_path);
+				sha = sha.length > 0 ? sha[0].sha : null;
 				const resp = await this.github_api_request(this.read_https_path(), '/contents/' + file_path, 'put', Object.assign({message : `${file_path}: ${message}`, content : base64_encode_utf8(content)}, sha ? {sha : sha} : {}));
-                if(resp.ok)
+				if(resp.ok)
 					sha = (await resp.json()).content.sha;
 				else if(resp.status == 409 && retry != false)
 				{
-                    console.log('retry not implemented');
+					console.log('retry not implemented');
 					//await delay(this.retry_delay_seconds);
 					//await this.put(message, sha ? ((await this.init_doc()) || this.sha) : null, false);
 				}
@@ -142,281 +141,318 @@
 					throw network_error(resp);
 			}
 		}
-        
-        function gh_auth_token()
-        {
-            const hash = window.location.hash;
-            if(hash && hash.length > 1)
-                return hash.slice(1);
-            return '';
-        }
-        async function clone(https_path, repo_path, println)
-        {
-            const gh = new Guthub(gh_auth_token(), println);
-            await gh.clone(https_path, repo_path);
-        }
+		
+		function gh_auth_token()
+		{
+			const hash = window.location.hash;
+			if(hash && hash.length > 1)
+				return hash.slice(1);
+			return '';
+		}
+		async function clone(https_path, repo_path, println)
+		{
+			const gh = new Guthub(gh_auth_token(), println);
+			await gh.clone(https_path, repo_path);
+		}
 
-        async function push(relative_file_path, println)
-        {
-            const gh = new Guthub(gh_auth_token(), println);
+		async function push(relative_file_path, println)
+		{
+			const gh = new Guthub(gh_auth_token(), println);
 			await gh.push(relative_file_path, 'guthub');
-        }
-        
-        function get_text()
+		}
+		
+		function get_text()
+		{
+			return window.monaco_editor.getModel().getValue();
+		}
+
+		function expanduser(path)
+		{
+			return path.replace('~', '/home/web_user');
+		}
+
+		function pwd(collapseuser)
+		{
+			const cwd = typeof(FS) == 'undefined' ? '~' : FS.cwd();
+			return collapseuser == true ? cwd.replace('/home/web_user', '~') : cwd;
+		}
+
+		function ls(path)
+		{
+			return Object.keys(FS.lookupPath(path).node.contents);
+		}
+
+		function mkdir(path)
+		{
+			FS.mkdir(path);
+		}
+		
+		function cd(path)
+		{
+			FS.chdir(path);
+		}
+
+        function download(file_path, mime)
         {
-            return window.monaco_editor.getModel().getValue();
+              mime = mime || "application/octet-stream";
+
+              let content = FS.readFile(file_path);
+              console.log(`Offering download of "${file_path}", with ${content.length} bytes...`);
+
+              var a = document.createElement('a');
+              a.download = file_path;
+              a.href = URL.createObjectURL(new Blob([content], {type: mime}));
+              a.style.display = 'none';
+
+              document.body.appendChild(a);
+              a.click();
+              setTimeout(() => {
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(a.href);
+              }, 2000);
         }
 
-        function expanduser(path)
-        {
-            return path.replace('~', '/home/web_user');
-        }
+		function edit(contents)
+		{
+			window.monaco_editor.getModel().setValue(contents);
+		}
 
-        function pwd(collapseuser)
-        {
-            const cwd = typeof(FS) == 'undefined' ? '~' : FS.cwd();
-            return collapseuser == true ? cwd.replace('/home/web_user', '~') : cwd;
-        }
+		function open(contents, file_path)
+		{
+			const imgcanvas = document.getElementById('imgcanvas'), pdfcanvas = document.getElementById('pdfcanvas');
+			if(file_path.endsWith('.svg'))
+			{
+				[imgcanvas.hidden, pdfcanvas.hidden] = [false, true];
+				imgcanvas.src = `data:image/svg+xml;base64,` + btoa(String.fromCharCode.apply(null, contents));
+			}
+			else if(file_path.endsWith('.png') || file_path.endsWith('.jpg'))
+			{
+				[imgcanvas.hidden, pdfcanvas.hidden] = [false, true];
+				const ext = file_path.endsWith('.png') ? 'png' : 'jpg';
+				imgcanvas.src = `data:image/${ext};base64,` + btoa(String.fromCharCode.apply(null, contents));
+			}
+			else if(file_path.endsWith('.pdf'))
+			{
+				[imgcanvas.hidden, pdfcanvas.hidden] = [true, false];
+				var loadingTask = window.pdf.getDocument({data: contents}).promise.then(function(pdf) {
+					console.log('PDF loaded');
 
-        function ls(path)
-        {
-            return Object.keys(FS.lookupPath(path).node.contents);
-        }
+					// Fetch the first page
+					var pageNumber = 1;
+					pdf.getPage(pageNumber).then(function(page) {
+						console.log('Page loaded');
 
-        function mkdir(path)
-        {
-            FS.mkdir(path);
-        }
-        
-        function cd(path)
-        {
-            FS.chdir(path);
-        }
+						const scale = 1.5;
+						const viewport = page.getViewport({scale: scale});
 
-        function edit(contents)
-        {
-            window.monaco_editor.getModel().setValue(contents);
-        }
+						// Prepare canvas using PDF page dimensions
+						const context = pdfcanvas.getContext('2d');
+						pdfcanvas.height = viewport.height;
+						pdfcanvas.width = viewport.width;
 
-        function open(contents, file_path)
-        {
-            const imgcanvas = document.getElementById('imgcanvas'), pdfcanvas = document.getElementById('pdfcanvas');
-            if(file_path.endsWith('.svg'))
-            {
-                [imgcanvas.hidden, pdfcanvas.hidden] = [false, true];
-                imgcanvas.src = `data:image/svg+xml;base64,` + btoa(String.fromCharCode.apply(null, contents));
-            }
-            else if(file_path.endsWith('.png') || file_path.endsWith('.jpg'))
-            {
-                [imgcanvas.hidden, pdfcanvas.hidden] = [false, true];
-                const ext = file_path.endsWith('.png') ? 'png' : 'jpg';
-                imgcanvas.src = `data:image/${ext};base64,` + btoa(String.fromCharCode.apply(null, contents));
-            }
-            else if(file_path.endsWith('.pdf'))
-            {
-                [imgcanvas.hidden, pdfcanvas.hidden] = [true, false];
-                var loadingTask = window.pdf.getDocument({data: contents}).promise.then(function(pdf) {
-                    console.log('PDF loaded');
+						// Render PDF page into canvas context
+						const renderContext = {
+							canvasContext: context,
+							viewport: viewport
+						};
+						const renderTask = page.render(renderContext);
+						renderTask.promise.then(function () {
+							console.log('Page rendered');
+						});
+					});
+				}, function(reason) {
+					console.error(reason);
+				});
+			}
+		}
 
-                    // Fetch the first page
-                    var pageNumber = 1;
-                    pdf.getPage(pageNumber).then(function(page) {
-                        console.log('Page loaded');
+		var pdfData = atob(
+				'JVBERi0xLjcKCjEgMCBvYmogICUgZW50cnkgcG9pbnQKPDwKICAvVHlwZSAvQ2F0YWxvZwog' +
+				'IC9QYWdlcyAyIDAgUgo+PgplbmRvYmoKCjIgMCBvYmoKPDwKICAvVHlwZSAvUGFnZXMKICAv' +
+				'TWVkaWFCb3ggWyAwIDAgMjAwIDIwMCBdCiAgL0NvdW50IDEKICAvS2lkcyBbIDMgMCBSIF0K' +
+				'Pj4KZW5kb2JqCgozIDAgb2JqCjw8CiAgL1R5cGUgL1BhZ2UKICAvUGFyZW50IDIgMCBSCiAg' +
+				'L1Jlc291cmNlcyA8PAogICAgL0ZvbnQgPDwKICAgICAgL0YxIDQgMCBSIAogICAgPj4KICA+' +
+				'PgogIC9Db250ZW50cyA1IDAgUgo+PgplbmRvYmoKCjQgMCBvYmoKPDwKICAvVHlwZSAvRm9u' +
+				'dAogIC9TdWJ0eXBlIC9UeXBlMQogIC9CYXNlRm9udCAvVGltZXMtUm9tYW4KPj4KZW5kb2Jq' +
+				'Cgo1IDAgb2JqICAlIHBhZ2UgY29udGVudAo8PAogIC9MZW5ndGggNDQKPj4Kc3RyZWFtCkJU' +
+				'CjcwIDUwIFRECi9GMSAxMiBUZgooSGVsbG8sIHdvcmxkISkgVGoKRVQKZW5kc3RyZWFtCmVu' +
+				'ZG9iagoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDEwIDAwMDAwIG4g' +
+				'CjAwMDAwMDAwNzkgMDAwMDAgbiAKMDAwMDAwMDE3MyAwMDAwMCBuIAowMDAwMDAwMzAxIDAw' +
+				'MDAwIG4gCjAwMDAwMDAzODAgMDAwMDAgbiAKdHJhaWxlcgo8PAogIC9TaXplIDYKICAvUm9v' +
+				'dCAxIDAgUgo+PgpzdGFydHhyZWYKNDkyCiUlRU9G');
 
-                        const scale = 1.5;
-                        const viewport = page.getViewport({scale: scale});
+		window.pdf = window['pdfjs-dist/build/pdf'];
 
-                        // Prepare canvas using PDF page dimensions
-                        const context = pdfcanvas.getContext('2d');
-                        pdfcanvas.height = viewport.height;
-                        pdfcanvas.width = viewport.width;
+		// The workerSrc property shall be specified.
+		window.pdf.GlobalWorkerOptions.workerSrc = '//mozilla.github.io/pdf.js/build/pdf.worker.js';
 
-                        // Render PDF page into canvas context
-                        const renderContext = {
-                            canvasContext: context,
-                            viewport: viewport
-                        };
-                        const renderTask = page.render(renderContext);
-                        renderTask.promise.then(function () {
-                            console.log('Page rendered');
-                        });
-                    });
-                }, function(reason) {
-                    console.error(reason);
-                });
-            }
-        }
+		// Using DocumentInitParameters object to load binary data.
+		open(pdfData, 'helloworld.pdf');
 
-        var pdfData = atob(
-              'JVBERi0xLjcKCjEgMCBvYmogICUgZW50cnkgcG9pbnQKPDwKICAvVHlwZSAvQ2F0YWxvZwog' +
-              'IC9QYWdlcyAyIDAgUgo+PgplbmRvYmoKCjIgMCBvYmoKPDwKICAvVHlwZSAvUGFnZXMKICAv' +
-              'TWVkaWFCb3ggWyAwIDAgMjAwIDIwMCBdCiAgL0NvdW50IDEKICAvS2lkcyBbIDMgMCBSIF0K' +
-              'Pj4KZW5kb2JqCgozIDAgb2JqCjw8CiAgL1R5cGUgL1BhZ2UKICAvUGFyZW50IDIgMCBSCiAg' +
-              'L1Jlc291cmNlcyA8PAogICAgL0ZvbnQgPDwKICAgICAgL0YxIDQgMCBSIAogICAgPj4KICA+' +
-              'PgogIC9Db250ZW50cyA1IDAgUgo+PgplbmRvYmoKCjQgMCBvYmoKPDwKICAvVHlwZSAvRm9u' +
-              'dAogIC9TdWJ0eXBlIC9UeXBlMQogIC9CYXNlRm9udCAvVGltZXMtUm9tYW4KPj4KZW5kb2Jq' +
-              'Cgo1IDAgb2JqICAlIHBhZ2UgY29udGVudAo8PAogIC9MZW5ndGggNDQKPj4Kc3RyZWFtCkJU' +
-              'CjcwIDUwIFRECi9GMSAxMiBUZgooSGVsbG8sIHdvcmxkISkgVGoKRVQKZW5kc3RyZWFtCmVu' +
-              'ZG9iagoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDEwIDAwMDAwIG4g' +
-              'CjAwMDAwMDAwNzkgMDAwMDAgbiAKMDAwMDAwMDE3MyAwMDAwMCBuIAowMDAwMDAwMzAxIDAw' +
-              'MDAwIG4gCjAwMDAwMDAzODAgMDAwMDAgbiAKdHJhaWxlcgo8PAogIC9TaXplIDYKICAvUm9v' +
-              'dCAxIDAgUgo+PgpzdGFydHhyZWYKNDkyCiUlRU9G');
-
-        window.pdf = window['pdfjs-dist/build/pdf'];
-
-        // The workerSrc property shall be specified.
-        window.pdf.GlobalWorkerOptions.workerSrc = '//mozilla.github.io/pdf.js/build/pdf.worker.js';
-
-        // Using DocumentInitParameters object to load binary data.
-        open(pdfData, 'helloworld.pdf');
-        
-
-        //import { FitAddon } from 'fit.js';
-        window.terminal = new Terminal();
-        //fitAddon = new FitAddon();
-        //term.loadAddon(fitAddon);
-        window.terminal.open(document.getElementById('terminal'));
-        //fitAddon.fit();
-        window.terminal.prompt = () => window.terminal.write('emscripten:' + pwd(true) + '$ ');
-        window.terminal.prompt();
-        var curLine = '';
-        window.terminal.on('key', async (key, ev) => {
-            if(ev.keyCode == 8)
-            {
-                if(curLine.length > 0)
-                {
-                    curLine = curLine.slice(0, curLine.length - 1);
-                    window.terminal.write('\b \b');
-                }
-            }
-            else if(ev.keyCode == 13)
-            {
-                const newline = '\r\n';
-                const ok = 'ok!';
-                const println = line => window.terminal.write((line || '') + newline);
-                println();
-                const [cmd, arg] = curLine.split(' ');
-                try
-                {
-                    if (cmd == '')
+		//import { FitAddon } from 'fit.js';
+		window.terminal = new Terminal();
+		//fitAddon = new FitAddon();
+		//term.loadAddon(fitAddon);
+		window.terminal.open(document.getElementById('terminal'));
+		//fitAddon.fit();
+		window.terminal.prompt = () => window.terminal.write('emscripten:' + pwd(true) + '$ ');
+		window.terminal.prompt();
+		var curLine = '';
+		window.terminal.on('key', async (key, ev) => {
+			if(ev.keyCode == 8)
+			{
+				if(curLine.length > 0)
+				{
+					curLine = curLine.slice(0, curLine.length - 1);
+					window.terminal.write('\b \b');
+				}
+			}
+			else if(ev.keyCode == 13)
+			{
+				const newline = '\r\n';
+				const ok = 'ok!';
+				const println = line => window.terminal.write((line || '') + newline);
+				println();
+				const [cmd, arg] = curLine.split(' ');
+				try
+				{
+					if (cmd == '')
+					{
+					}
+                    else if(cmd == 'download')
                     {
+                        download(arg);
+						println(ok);
                     }
-                    else if(cmd == 'cat')
-                    {
-                        Module.callMain([arg]);
-                    }
-                    else if(cmd == 'cowsay')
-                    {
-                        cowsay.callMain([arg]);
-                    }
-                    else if(cmd == 'pwd')
-                    {
-                        println(pwd());
-                    }
-                    else if(cmd == 'ls')
-                    {
-                        const res = ls(arg || '.');
-                        println(res.join(' '));
-                    }
-                    else if(cmd == 'mkdir')
-                    {
-                        mkdir(arg);
-                    }
-                    else if(cmd == 'cd')
-                    {
-                        cd(arg);
-                    }
-                    else if(cmd == 'clone')
-                    {
-                        const path = arg.split('/').pop();
-                        await clone(arg, path, println);
-                    }
-                    else if(cmd == 'push')
-                    {
-                        await push(arg, println);
-                        println(ok);
-                    }
-                    else if(cmd == 'open')
-                    {
-                        if(arg.endsWith('.pdf') || arg.endsWith('.jpg') || arg.endsWith('.png') || arg.endsWith('.svg'))
-                            open(FS.readFile(arg, {encoding : 'binary'}), arg);
-                        else
-                            edit(FS.readFile(arg, {encoding : 'utf8'}));
-                    }
-                    else if(cmd == 'save')
-                    {
-                        FS.writeFile(arg, get_text());
-                        println(ok);
-                    }
-                    else
-                    {
-                        println(cmd + ': command not found');
-                    }
-                }
-                catch(err)
-                {
-                    println('Error: ' +  err.message);
-                }
-                window.terminal.prompt();
-                curLine = '';
-            }
-            else
-            {
-                curLine += key;
-                window.terminal.write(key);
-            }
-            
-            //window.terminal.element.scrollIntoView(true);
-        });
-        
-        require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@latest/min/vs' }});
-        window.MonacoEnvironment = { getWorkerUrl: () => proxy };
-        let proxy = URL.createObjectURL(new Blob([`
-          self.MonacoEnvironment = {
-            baseUrl: 'https://unpkg.com/monaco-editor@latest/min/'
-          };
-          importScripts('https://unpkg.com/monaco-editor@latest/min/vs/base/worker/workerMain.js');
-        `], { type: 'text/javascript' }));
+					else if(cmd == 'cat')
+					{
+						cat().then(Module_ => 
+						{
+							//Module_.FS.writeFile('test.txt', 'test');
+                            console.log('Module', FS.cwd());
+							Module_.FS = FS;
+                            console.log('Module_', Module_.FS.cwd());
+                            Module_.callMain([arg]);
+						});
+					}
+					else if(cmd == 'cowsay')
+					{
+						cowsay().then(Module => Module.callMain([arg]));
+					}
+					else if(cmd == 'pwd')
+					{
+						println(pwd());
+					}
+					else if(cmd == 'ls')
+					{
+						const res = ls(arg || '.');
+						println(res.join(' '));
+					}
+					else if(cmd == 'mkdir')
+					{
+						mkdir(arg);
+					}
+					else if(cmd == 'cd')
+					{
+						cd(arg);
+					}
+					else if(cmd == 'clone')
+					{
+						const path = arg.split('/').pop();
+						await clone(arg, path, println);
+					}
+					else if(cmd == 'push')
+					{
+						await push(arg, println);
+						println(ok);
+					}
+					else if(cmd == 'open')
+					{
+						if(arg.endsWith('.pdf') || arg.endsWith('.jpg') || arg.endsWith('.png') || arg.endsWith('.svg'))
+							open(FS.readFile(arg, {encoding : 'binary'}), arg);
+						else
+							edit(FS.readFile(arg, {encoding : 'utf8'}));
+					}
+					else if(cmd == 'save')
+					{
+						FS.writeFile(arg, get_text());
+						println(ok);
+					}
+					else
+					{
+						println(cmd + ': command not found');
+					}
+				}
+				catch(err)
+				{
+					println('Error: ' +	err.message);
+				}
+				window.terminal.prompt();
+				curLine = '';
+			}
+			else
+			{
+				curLine += key;
+				window.terminal.write(key);
+			}
+			
+			//window.terminal.element.scrollIntoView(true);
+		});
+		
+		require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@latest/min/vs' }});
+		window.MonacoEnvironment = { getWorkerUrl: () => proxy };
+		let proxy = URL.createObjectURL(new Blob([`
+			self.MonacoEnvironment = {
+			baseUrl: 'https://unpkg.com/monaco-editor@latest/min/'
+			};
+			importScripts('https://unpkg.com/monaco-editor@latest/min/vs/base/worker/workerMain.js');
+		`], { type: 'text/javascript' }));
 
-        require(["vs/editor/editor.main"], function () {
-          window.monaco_editor = monaco.editor.create(document.getElementById('editor'), {theme: 'vs-dark'});
-        });
+		require(["vs/editor/editor.main"], function () {
+			window.monaco_editor = monaco.editor.create(document.getElementById('editor'), {theme: 'vs-dark'});
+		});
 
-      </script>
-    <script type='text/javascript'>
-        let statusElement = document.getElementById('status');
+		</script>
+	<script type='text/javascript'>
+		let statusElement = document.getElementById('status');
 
-        var Module = {
-            noInitialRun : true,
-            preRun: [() => FS.chdir('/home/web_user')],
-            print: (function() {
-                return function(text) {
-                    if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-                    window.terminal.write(text + '\r\n');
-                };
-            })(),
-            printErr: function(text) {
-                if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-                console.error(text);
-            },
-            setStatus: function(text) {
-                statusElement.value += text + '\n';
-                statusElement.scrollTop = statusElement.scrollHeight;
-            },
-            totalDependencies: 0,
-            monitorRunDependencies: function(left) {
-                this.totalDependencies = Math.max(this.totalDependencies, left);
-                Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
-            }
-      };
-      Module.setStatus('Downloading Emscripten...');
-      window.onerror = function(event) {
-        Module.setStatus('Exception thrown, see JavaScript console');
-        Module.setStatus = function(text) {
-          if (text) Module.printErr('[post-exception status] ' + text);
-        };
-      };
-    </script>
-      <script async type="text/javascript" src="emscriptenfs.js"></script>
-    </body>
-  </html>
+		var Module = 
+		{
+			noInitialRun : true,
+			
+			preRun: [() => FS.chdir('/home/web_user')],
+			
+			print: (function()
+			{
+				return function(text) {
+					if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+					window.terminal.write(text + '\r\n');
+				};
+			})(),
+
+			printErr: function(text)
+			{
+				if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+				console.error(text);
+			},
+			
+			setStatus: function(text)
+			{
+				statusElement.value += (this.statusPrefix || '') + text + '\n';
+				statusElement.scrollTop = statusElement.scrollHeight;
+			},
+			
+			monitorRunDependencies: function(left)
+			{
+				this.totalDependencies = Math.max(this.totalDependencies, left);
+				Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+			},
+			
+			totalDependencies: 0,
+		};
+		Module.setStatus('Downloading Emscripten...');
+		window.onerror = () => { Module.statusPrefix = '[post-exception] ';};
+		</script>
+		<script async type="text/javascript" src="emscriptenfs.js"></script>
+	</body>
+</html>
