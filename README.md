@@ -13,6 +13,10 @@
 12. builtins
 
 ### Links
+https://github.com/latexjs/latexjs
+
+https://github.com/emscripten-core/emscripten/issues/2040
+
 https://stackoverflow.com/questions/54466870/emscripten-offer-to-download-save-a-generated-memfs-file
 
 https://git-scm.com/docs/gitrepository-layout
