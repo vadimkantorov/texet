@@ -331,12 +331,18 @@
                     }
 					else if(cmd == 'cat')
 					{
-						cat().then(Module_ => 
+                        const FS_global = FS;
+                        const Module_cat = {
+                            preRun: () => {
+                                const FS = Module_cat.FS;
+							    FS.writeFile('test.txt', 'test');
+                                FS.mkdir('/global');
+                                FS.mount(FS_global, {}, '/global');
+                            },
+                        };
+                        
+                        cat(Module_cat).then(Module_ => 
 						{
-							//Module_.FS.writeFile('test.txt', 'test');
-                            console.log('Module', FS.cwd());
-							Module_.FS = FS;
-                            console.log('Module_', Module_.FS.cwd());
                             Module_.callMain([arg]);
 						});
 					}
