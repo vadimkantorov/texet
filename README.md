@@ -1,18 +1,16 @@
 ### TODO
-1. Unix cat
-2. TexLive / xetex.js
+1. auto-cloning
+2. Store file sha hashes in .git directory
 3. Support recursive clone
 4. Support binary clone
-4. Ctrl+V, command history
-5. Store file sha hashes in .git directory
+5. empty ls => print nothing
 6. arg1/arg2
-7. Figure out Terminal sizing
-8. auto-cloning
-9. file tab auto-complete
-10. help command
-11. empty ls => print nothing
-12. clear command
-13. builtins
+7. TexLive / xetex.js
+8. Ctrl+V, command history
+9. Figure out Terminal sizing
+10. file tab auto-complete
+11. clear command
+12. builtins
 
 ### Links
 https://stackoverflow.com/questions/54466870/emscripten-offer-to-download-save-a-generated-memfs-file

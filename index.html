@@ -319,6 +319,11 @@
 					if (cmd == '')
 					{
 					}
+                    else if(cmd == 'help')
+                    {
+                        const cmds = ['help', 'download', 'cat', 'cowsay', 'pwd', 'ls', 'mkdir', 'cd', 'clone', 'push', 'open', 'save'];
+                        println(cmds.sort().join(' '));
+                    }
                     else if(cmd == 'download')
                     {
                         download(arg);
