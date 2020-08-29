@@ -120,9 +120,9 @@
 					if(file.type == 'file')
                     {
                         const resp = await fetch(file.download_url);
-                        const contents = await resp.text();
+                        const contents = new Uint8Array(await resp.arrayBuffer());
                         const file_path = repo_path + '/' + file.path;
-                        FS.writeFile(file_path, contents);
+                        FS.writeFile(file_path, contents, {encoding: 'binary'});
                     }
                     else if(file.type == 'dir')
                     {
@@ -369,7 +369,8 @@
 					else if(cmd == 'ls')
 					{
 						const res = ls(arg || '.');
-						println(res.join(' '));
+                        if(res.length > 0)
+                            println(res.join(' '));
 					}
 					else if(cmd == 'mkdir')
 					{

@@ -1,9 +1,7 @@
 ### TODO
 1. auto-cloning
 2. Store file sha hashes in .git directory
-3. Support recursive clone
-4. Support binary clone
-5. empty ls => print nothing
+3. Upload a file from local system
 6. arg1/arg2
 7. TexLive / xetex.js
 8. Ctrl+V, command history
@@ -13,6 +11,8 @@
 12. builtins
 
 ### Links
+https://stackoverflow.com/questions/61496876/how-can-i-load-a-file-from-a-html-input-into-emscriptens-memfs-file-system
+
 https://github.com/latexjs/latexjs
 
 https://github.com/emscripten-core/emscripten/issues/2040
