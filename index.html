@@ -113,12 +113,24 @@
 				FS.mkdir(repo_path + '/.git');
 				FS.writeFile(repo_path + '/.git/config', '[remote "origin"]\nurl = ' + https_path);
 				FS.writeFile(repo_path + '/.git/githubapicontents.json', JSON.stringify(repo));
-				for(const file of repo)
-				{
-					const resp = await fetch(file.download_url);
-					const contents = await resp.text();
-					const file_path = `${repo_path}/${file.name}`;
-					FS.writeFile(file_path, contents);
+                
+                while(repo.length > 0)
+                {
+                    const file = repo.pop();
+					if(file.type == 'file')
+                    {
+                        const resp = await fetch(file.download_url);
+                        const contents = await resp.text();
+                        const file_path = repo_path + '/' + file.path;
+                        FS.writeFile(file_path, contents);
+                    }
+                    else if(file.type == 'dir')
+                    {
+				        FS.mkdir(repo_path + '/' + file.path);
+                        const resp = await this.github_api_request(https_path, '/contents/' + file.path);
+                        const dir = await resp.json();
+                        repo.push(...dir);
+                    }
 				}
 				this.println(`Unpacking objects: 100% (${repo.length}/${repo.length}), done.`);
 			}
