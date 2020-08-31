@@ -1,7 +1,6 @@
 ### TODO
 1. auto-cloning
 2. Store file sha hashes in .git directory
-3. Upload a file from local system
 6. arg1/arg2
 7. TexLive / xetex.js
 8. Ctrl+V, command history
