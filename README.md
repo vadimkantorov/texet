@@ -7,8 +7,6 @@
 8. Ctrl+V, command history
 9. Figure out Terminal sizing
 10. file tab auto-complete
-11. clear command
-12. builtins
 
 ### Links
 https://stackoverflow.com/questions/61496876/how-can-i-load-a-file-from-a-html-input-into-emscriptens-memfs-file-system

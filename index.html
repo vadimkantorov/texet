@@ -153,27 +153,97 @@
 					throw network_error(resp);
 			}
 		}
-		
-		function gh_auth_token()
-		{
-			const hash = window.location.hash;
-			if(hash && hash.length > 1)
-				return hash.slice(1);
-			return '';
-		}
-		async function clone(https_path, repo_path, println)
-		{
-			const gh = new Guthub(gh_auth_token(), println);
-			await gh.clone(https_path, repo_path);
-		}
 
-		async function push(relative_file_path, println)
-		{
-			const gh = new Guthub(gh_auth_token(), println);
-			await gh.push(relative_file_path, 'guthub');
-		}
+        class Shell
+        {
+            constructor(FS, term, println)
+            {
+                this.term = term;
+                this.FS = FS;
+                this.home = '/home/web_user';
+                this.github_auth_token = window.location.hash;
+                if(this.github_auth_token && this.github_auth_token.length > 1)
+                    this.github_auth_token = this.github_auth_token.slice(1);
+                this.guthub = new Guthub(self.github_auth_token, println);
+            }
+
+            open(file_path)
+            {
+                if(file_path.endsWith('.pdf') || file_path.endsWith('.jpg') || file_path.endsWith('.png') || file_path.endsWith('.svg'))
+                    open_in_viewer(this.FS.readFile(file_path, {encoding : 'binary'}), file_path);
+                else
+                    edit_in_editor(this.FS.readFile(file_path, {encoding : 'utf8'}));
+            }
+
+            help()
+            {
+                return ['help', 'download', 'cat', 'clear', 'cowsay', 'pwd', 'ls', 'mkdir', 'cd', 'clone', 'push', 'open', 'save'].sort();
+            }
+
+            save(file_path, contents)
+            {
+				this.FS.writeFile(file_path, contents);
+            }
+
+            pwd(replace_home)
+            {
+                const cwd = this.FS ? FS.cwd() : this.home;
+                return replace_home == true ? cwd.replace(this.home, '~') : cwd;
+            
+            }
+            
+            clear()
+            {
+                this.term.write('\x1bc');
+            }
+
+            ls(path)
+            {
+                return Object.keys(this.FS.lookupPath(path || '.').node.contents);
+            }
+            
+            cd(path)
+            {
+                this.FS.chdir(path);
+            }
+
+            mkdir(path)
+            {
+                this.FS.mkdir(path);
+            }
 		
-		function get_text()
+            download(file_path, mime)
+            {
+                  mime = mime || "application/octet-stream";
+
+                  let content = FS.readFile(file_path);
+                  console.log(`Offering download of "${file_path}", with ${content.length} bytes...`);
+
+                  var a = document.createElement('a');
+                  a.download = file_path;
+                  a.href = URL.createObjectURL(new Blob([content], {type: mime}));
+                  a.style.display = 'none';
+
+                  document.body.appendChild(a);
+                  a.click();
+                  setTimeout(() => {
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(a.href);
+                  }, 2000);
+            }
+            
+            async clone(https_path, repo_path)
+            {
+                await this.guthub.clone(https_path, repo_path);
+            }
+
+            async push(relative_file_path)
+            {
+                await this.guthub.push(relative_file_path, 'guthub');
+            }
+        }
+		
+        function get_text()
 		{
 			return window.monaco_editor.getModel().getValue();
 		}
@@ -183,53 +253,12 @@
 			return path.replace('~', '/home/web_user');
 		}
 
-		function pwd(collapseuser)
-		{
-			const cwd = typeof(FS) == 'undefined' ? '~' : FS.cwd();
-			return collapseuser == true ? cwd.replace('/home/web_user', '~') : cwd;
-		}
-
-		function ls(path)
-		{
-			return Object.keys(FS.lookupPath(path).node.contents);
-		}
-
-		function mkdir(path)
-		{
-			FS.mkdir(path);
-		}
-		
-		function cd(path)
-		{
-			FS.chdir(path);
-		}
-
-        function download(file_path, mime)
-        {
-              mime = mime || "application/octet-stream";
-
-              let content = FS.readFile(file_path);
-              console.log(`Offering download of "${file_path}", with ${content.length} bytes...`);
-
-              var a = document.createElement('a');
-              a.download = file_path;
-              a.href = URL.createObjectURL(new Blob([content], {type: mime}));
-              a.style.display = 'none';
-
-              document.body.appendChild(a);
-              a.click();
-              setTimeout(() => {
-                  document.body.removeChild(a);
-                  URL.revokeObjectURL(a.href);
-              }, 2000);
-        }
-
-		function edit(contents)
+		function open_in_editor(contents)
 		{
 			window.monaco_editor.getModel().setValue(contents);
 		}
 
-		function open(contents, file_path)
+		function open_in_viewer(contents, file_path)
 		{
 			const imgcanvas = document.getElementById('imgcanvas'), pdfcanvas = document.getElementById('pdfcanvas');
 			if(file_path.endsWith('.svg'))
@@ -299,7 +328,7 @@
 		window.pdf.GlobalWorkerOptions.workerSrc = '//mozilla.github.io/pdf.js/build/pdf.worker.js';
 
 		// Using DocumentInitParameters object to load binary data.
-		open(pdfData, 'helloworld.pdf');
+		open_in_viewer(pdfData, 'helloworld.pdf');
 
 		//import { FitAddon } from 'fit.js';
 		window.terminal = new Terminal();
@@ -307,11 +336,16 @@
 		//term.loadAddon(fitAddon);
 		window.terminal.open(document.getElementById('terminal'));
 		//fitAddon.fit();
-		window.terminal.prompt = () => window.terminal.write('emscripten:' + pwd(true) + '$ ');
+            
+        window.terminal.prompt = () => window.terminal.write('emscripten:' + new Shell(typeof(FS) == 'undefined' ? null : FS, window.terminal).pwd(true) + '$ ');
 		window.terminal.prompt();
 		var curLine = '';
+        const newline = '\r\n';
+        const ok = 'ok!';
+        const println = line => window.terminal.write((line || '') + newline);
 		window.terminal.on('key', async (key, ev) => {
-			if(ev.keyCode == 8)
+			const shell = new Shell(FS, window.terminal, println);
+            if(ev.keyCode == 8)
 			{
 				if(curLine.length > 0)
 				{
@@ -321,9 +355,6 @@
 			}
 			else if(ev.keyCode == 13)
 			{
-				const newline = '\r\n';
-				const ok = 'ok!';
-				const println = line => window.terminal.write((line || '') + newline);
 				println();
 				const [cmd, arg] = curLine.split(' ');
 				try
@@ -331,14 +362,17 @@
 					if (cmd == '')
 					{
 					}
+                    else if(cmd == 'clear')
+                    {
+                        shell.clear();
+                    }
                     else if(cmd == 'help')
                     {
-                        const cmds = ['help', 'download', 'cat', 'cowsay', 'pwd', 'ls', 'mkdir', 'cd', 'clone', 'push', 'open', 'save'];
-                        println(cmds.sort().join(' '));
+                        println(shell.help().join(' '));
                     }
                     else if(cmd == 'download')
                     {
-                        download(arg);
+                        shell.download(arg);
 						println(ok);
                     }
 					else if(cmd == 'cat')
@@ -364,43 +398,40 @@
 					}
 					else if(cmd == 'pwd')
 					{
-						println(pwd());
+						println(shell.pwd());
 					}
 					else if(cmd == 'ls')
 					{
-						const res = ls(arg || '.');
+						const res = shell.ls(arg);
                         if(res.length > 0)
                             println(res.join(' '));
 					}
 					else if(cmd == 'mkdir')
 					{
-						mkdir(arg);
+						shell.mkdir(arg);
 					}
 					else if(cmd == 'cd')
 					{
-						cd(arg);
+						shell.cd(arg);
 					}
 					else if(cmd == 'clone')
 					{
 						const path = arg.split('/').pop();
-						await clone(arg, path, println);
+                        await shell.clone(arg, path);
 					}
 					else if(cmd == 'push')
 					{
-						await push(arg, println);
+						await shell.push(arg);
 						println(ok);
 					}
 					else if(cmd == 'open')
 					{
-						if(arg.endsWith('.pdf') || arg.endsWith('.jpg') || arg.endsWith('.png') || arg.endsWith('.svg'))
-							open(FS.readFile(arg, {encoding : 'binary'}), arg);
-						else
-							edit(FS.readFile(arg, {encoding : 'utf8'}));
+                        shell.open(arg);
 					}
 					else if(cmd == 'save')
 					{
-						FS.writeFile(arg, get_text());
-						println(ok);
+						shell.save(arg, get_text());
+                        println(ok);
 					}
 					else
 					{
