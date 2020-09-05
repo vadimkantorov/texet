@@ -167,11 +167,24 @@
                 this.FS = FS;
                 this.println = println;
                 
-                this.github_auth_token = window.location.hash;
-                if(this.github_auth_token && this.github_auth_token.length > 1)
+                this.github_auth_token = window.location.hash || '';
+                if(this.github_auth_token.length > 1)
                     this.github_auth_token = this.github_auth_token.slice(1);
+
+                this.github_https_path = window.location.search || '';
+                if(this.github_https_path.length > 1)
+                    this.github_https_path = 'https://github.com' + this.github_https_path.slice(1);
                 
                 this.guthub = new Guthub(self.github_auth_token, println);
+            }
+
+            async onload()
+            {
+                if(this.github_https_path.length > 0)
+                {
+                    const repo_path = await this.clone(this.github_https_path);
+                    this.cd(repo_path);
+                }
             }
 
             open(file_path)
@@ -254,9 +267,11 @@
                   }, 2000);
             }
             
-            async clone(https_path, repo_path)
+            async clone(https_path)
             {
+			    const repo_path = https_path.split('/').pop();
                 await this.guthub.clone(https_path, repo_path);
+                return repo_path;
             }
 
             async push(relative_file_path)
@@ -360,13 +375,12 @@
 		//fitAddon.fit();
             
         window.terminal.prompt = () => window.terminal.write('emscripten:' + new Shell(typeof(FS) == 'undefined' ? null : FS, window.terminal).pwd(true) + '$ ');
-		window.terminal.prompt();
+        window.terminal.println = line => window.terminal.write((line || '') + '\r\n');
+		//window.terminal.prompt();
 		var curLine = '';
-        const newline = '\r\n';
         const ok = 'ok!';
-        const println = line => window.terminal.write((line || '') + newline);
 		window.terminal.on('key', async (key, ev) => {
-			const shell = new Shell(FS, window.terminal, println);
+			const shell = new Shell(FS, window.terminal, window.terminal.println);
             if(ev.keyCode == 8)
 			{
 				if(curLine.length > 0)
@@ -377,7 +391,7 @@
 			}
 			else if(ev.keyCode == 13)
 			{
-				println();
+				window.terminal.println();
 				const [cmd, arg] = curLine.split(' ');
 				try
 				{
@@ -390,16 +404,16 @@
                     }
                     else if(cmd == 'help')
                     {
-                        println(shell.help().join(' '));
+                        window.terminal.println(shell.help().join(' '));
                     }
                     else if(cmd == 'download')
                     {
                         shell.download(arg);
-						println(ok);
+						window.terminal.println(ok);
                     }
                     else if(cmd == 'upload')
                     {
-                        println(await shell.upload(arg));
+                        window.terminal.println(await shell.upload(arg));
                     }
 					else if(cmd == 'cat')
 					{
@@ -424,13 +438,13 @@
 					}
 					else if(cmd == 'pwd')
 					{
-						println(shell.pwd());
+						window.terminal.println(shell.pwd());
 					}
 					else if(cmd == 'ls')
 					{
 						const res = shell.ls(arg);
                         if(res.length > 0)
-                            println(res.join(' '));
+                            window.terminal.println(res.join(' '));
 					}
 					else if(cmd == 'mkdir')
 					{
@@ -442,13 +456,12 @@
 					}
 					else if(cmd == 'clone')
 					{
-						const path = arg.split('/').pop();
-                        await shell.clone(arg, path);
+                        await shell.clone(arg);
 					}
 					else if(cmd == 'push')
 					{
 						await shell.push(arg);
-						println(ok);
+						window.terminal.println(ok);
 					}
 					else if(cmd == 'open')
 					{
@@ -457,16 +470,16 @@
 					else if(cmd == 'save')
 					{
 						shell.save(arg, get_text());
-                        println(ok);
+                        window.terminal.println(ok);
 					}
 					else
 					{
-						println(cmd + ': command not found');
+						window.terminal.println(cmd + ': command not found');
 					}
 				}
 				catch(err)
 				{
-					println('Error: ' +	err.message);
+					window.terminal.println('Error: ' + err.message);
 				}
 				window.terminal.prompt();
 				curLine = '';
@@ -493,15 +506,18 @@
 			window.monaco_editor = monaco.editor.create(document.getElementById('editor'), {theme: 'vs-dark'});
 		});
 
-		</script>
-	<script type='text/javascript'>
 		let statusElement = document.getElementById('status');
 
 		var Module = 
 		{
 			noInitialRun : true,
 			
-			preRun: [() => FS.chdir('/home/web_user')],
+            preRun: [async () => 
+            {
+                FS.chdir('/home/web_user');
+                await new Shell(FS, window.terminal, window.terminal.println).onload();
+                window.terminal.prompt();
+            }],
 			
 			print: (function()
 			{

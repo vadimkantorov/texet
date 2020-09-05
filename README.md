@@ -1,5 +1,4 @@
 ### TODO
-1. auto-cloning
 2. Store file sha hashes in .git directory
 6. arg1/arg2
 7. TexLive / xetex.js
@@ -8,6 +7,10 @@
 10. file tab auto-complete
 
 ### Links
+https://github.com/RangerMauve/xterm-js-shell
+
+https://github.com/latexjs/latexjs/blob/master/latexjs/Dockerfile
+
 https://stackoverflow.com/questions/61496876/how-can-i-load-a-file-from-a-html-input-into-emscriptens-memfs-file-system
 
 https://github.com/latexjs/latexjs
