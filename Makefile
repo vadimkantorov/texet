@@ -18,7 +18,7 @@ test/test.svg: test
 
 test/test.tex: test
 	echo '\\documentclass{article}' > test/test.tex
-	echo '\\begin{document}Hello, world!\\end{document}' >> test/test.tex
+	echo '\\begin{document}Hello, world now!\\end{document}' >> test/test.tex
 
 emscriptenfs.js: test/test.txt test/test.pdf test/test.png test/test.svg test/test.tex
 	emcc emscriptenfs.c -o $@ --preload-file test@/home/web_user/test -s FORCE_FILESYSTEM=1 -s EXPORTED_RUNTIME_METHODS='["FS"]' -s INVOKE_RUN=0 
