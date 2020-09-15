@@ -1,4 +1,5 @@
 ### TODO
+1. publish a pdf to github releases: https://developer.github.com/v3/repos/releases/#create-a-release, https://developer.github.com/v3/repos/releases/#upload-a-release-asset, https://developer.github.com/v3/repos/releases/#update-a-release-asset
 2. Store file sha hashes in .git directory
 6. arg1/arg2
 7. TexLive / xetex.js

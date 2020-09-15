@@ -8,8 +8,6 @@
 		<script src="https://unpkg.com/xterm@3.8.0/dist/xterm.js"></script>
 		<script src="https://unpkg.com/xterm@3.8.0/dist/addons/fit/fit.js"></script>
 		
-		<script async type="text/javascript" src="cat.js"></script>
-		<script async type="text/javascript" src="cowsay.js"></script>
 		<script src="https://unpkg.com/monaco-editor@latest/min/vs/loader.js"></script>
 		<style>
             html, body{
@@ -158,6 +156,21 @@
 			}
 		}
 
+        function copytree(file_path, src_FS, dst_FS)
+        {
+            dst_FS.mkdir(file_path);
+            const files = src_FS.lookupPath(file_path).node.contents;
+            for(const file_name of Object.keys(files))
+            {
+                const file = files[file_name];
+                const path = `${file_path}/${file_name}`;
+                if(!file.isFolder)
+                    dst_FS.writeFile(path, src_FS.readFile(path, {encoding : 'binary'}));
+                else
+                    copytree(path, src_FS, dst_FS);
+            }
+        }
+
         class Shell
         {
             constructor(FS, term, println)
@@ -190,14 +203,20 @@
             open(file_path)
             {
                 if(file_path.endsWith('.pdf') || file_path.endsWith('.jpg') || file_path.endsWith('.png') || file_path.endsWith('.svg'))
-                    open_in_viewer(this.FS.readFile(file_path, {encoding : 'binary'}), file_path);
+                {
+                    const contents = this.FS.readFile(file_path, {encoding : 'binary'});
+                    open_in_viewer(contents, file_path);
+                }
                 else
-                    open_in_editor(this.FS.readFile(file_path, {encoding : 'utf8'}));
+                {
+                    const contents = this.FS.readFile(file_path, {encoding : 'utf8'});
+			        window.monaco_editor.getModel().setValue(contents);
+                }
             }
 
             help()
             {
-                return ['help', 'download', 'cat', 'clear', 'cowsay', 'pwd', 'ls', 'mkdir', 'cd', 'clone', 'push', 'open', 'save'].sort();
+                return ['help', 'latexmk', 'download', 'clear', 'pwd', 'ls', 'mkdir', 'cd', 'clone', 'push', 'open', 'save'].sort();
             }
 
             save(file_path, contents)
@@ -208,8 +227,7 @@
             pwd(replace_home)
             {
                 const cwd = this.FS ? FS.cwd() : this.home;
-                return replace_home == true ? cwd.replace(this.home, '~') : cwd;
-            
+                return replace_home == true ? cwd.replace(this.home, '~') : cwd;    
             }
             
             clear()
@@ -224,12 +242,82 @@
             
             cd(path)
             {
+                //const expanduser = path => return path.replace('~', this.home);
                 this.FS.chdir(path);
             }
 
             mkdir(path)
             {
                 this.FS.mkdir(path);
+            }
+
+            async latexmk(file_path)
+            {
+                console.assert(file_path.endsWith('.tex'));
+
+                const fmt_xelatex = '/xelatex.fmt';
+                const cnf_texlive = '/texmf.cnf';
+                const bin_busytex = '/bin/busytex';
+                const dir_texmfdist = '/texlive/texmf-dist:';
+                const dir_fontconfig = '/fontconfig';
+                const conf_fontconfig = 'texlive-fontconfig.conf';
+
+                const Module_busytex = 
+                {
+                    noInitialRun : true,
+
+                    thisProgram : bin_busytex,
+
+                    preRun : [() =>
+                    {
+                        const ENV = Module_busytex.ENV;
+                        ENV.TEXMFDIST = dir_texmfdist;
+                        ENV.FONTCONFIG_PATH = dir_fontconfig;
+                        ENV.FONTCONFIG_FILE = conf_fontconfig;
+                    }],
+                    
+                    print(text) 
+                    {
+                        Module_busytex.setStatus('stdout: ' + (arguments.length > 1 ?  Array.prototype.slice.call(arguments).join(' ') : text));
+                    },
+
+                    printErr(text)
+                    {
+                        Module_busytex.setStatus('stderr: ' + (arguments.length > 1 ?  Array.prototype.slice.call(arguments).join(' ') : text));
+                    },
+                    
+                    setStatus(text)
+                    {
+                        let statusElement = document.getElementById('status');
+                        statusElement.value += (this.statusPrefix || '') + text + '\n';
+                        statusElement.scrollTop = statusElement.scrollHeight;
+                    },
+                    
+                    monitorRunDependencies(left)
+                    {
+                        this.totalDependencies = Math.max(this.totalDependencies, left);
+                        Module_busytex.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+                    },
+                    
+                    totalDependencies: 0,
+                };
+
+                const Module = await busytex(Module_busytex);
+                const cwd = this.FS.cwd();
+                console.assert(cwd.startsWith(this.home));
+
+                const source_dir = cwd.split('/').slice(0, 4).join('/');
+                copytree(source_dir, this.FS, Module.FS);
+                const source_path = `${cwd}/${file_path}`;
+                const source_name = source_path.slice(source_path.lastIndexOf('/') + 1)
+				const dirname = source_path.slice(0, source_path.length - source_name.length)
+                Module.FS.chdir(dirname);
+                
+                Module.callMain(['xetex', '--interaction=nonstopmode', '--halt-on-error', '--no-pdf', '--fmt=' + fmt_xelatex,  source_name]);
+                Module.callMain(['dvipdfmx', source_name.replace('.tex', '.xdv')]);
+                
+                const pdf = Module.FS.readFile(source_path.replace('.tex', '.pdf'), {encoding: 'binary'});
+                this.FS.writeFile(file_path.replace('.tex', '.pdf'), pdf);
             }
 
             async upload(file_path)
@@ -280,28 +368,13 @@
             }
         }
 		
-        function get_text()
-		{
-			return window.monaco_editor.getModel().getValue();
-		}
-
-		function expanduser(path)
-		{
-			return path.replace('~', '/home/web_user');
-		}
-
-		function open_in_editor(contents)
-		{
-			window.monaco_editor.getModel().setValue(contents);
-		}
-
 		function open_in_viewer(contents, file_path)
 		{
 			const imgcanvas = document.getElementById('imgcanvas'), pdfcanvas = document.getElementById('pdfcanvas');
 			if(file_path.endsWith('.svg'))
 			{
 				[imgcanvas.hidden, pdfcanvas.hidden] = [false, true];
-				imgcanvas.src = `data:image/svg+xml;base64,` + btoa(String.fromCharCode.apply(null, contents));
+				imgcanvas.src = 'data:image/svg+xml;base64,' + btoa(String.fromCharCode.apply(null, contents));
 			}
 			else if(file_path.endsWith('.png') || file_path.endsWith('.jpg'))
 			{
@@ -311,6 +384,7 @@
 			}
 			else if(file_path.endsWith('.pdf'))
 			{
+                //document.getElementById('preview').src = URL.createObjectURL(new Blob([pdf], {type: 'application/pdf'}));
 				[imgcanvas.hidden, pdfcanvas.hidden] = [true, false];
 				var loadingTask = window.pdf.getDocument({data: contents}).promise.then(function(pdf) {
 					console.log('PDF loaded');
@@ -415,26 +489,9 @@
                     {
                         window.terminal.println(await shell.upload(arg));
                     }
-					else if(cmd == 'cat')
+					else if(cmd == 'latexmk')
 					{
-                        const FS_global = FS;
-                        const Module_cat = {
-                            preRun: () => {
-                                const FS = Module_cat.FS;
-							    FS.writeFile('test.txt', 'test');
-                                FS.mkdir('/global');
-                                FS.mount(FS_global, {}, '/global');
-                            },
-                        };
-                        
-                        cat(Module_cat).then(Module_ => 
-						{
-                            Module_.callMain([arg]);
-						});
-					}
-					else if(cmd == 'cowsay')
-					{
-						cowsay().then(Module => Module.callMain([arg]));
+                        await shell.latexmk(arg);
 					}
 					else if(cmd == 'pwd')
 					{
@@ -469,8 +526,7 @@
 					}
 					else if(cmd == 'save')
 					{
-						shell.save(arg, get_text());
-                        window.terminal.println(ok);
+						shell.save(arg, window.monaco_editor.getModel().getValue());
 					}
 					else
 					{
@@ -519,21 +575,19 @@
                 window.terminal.prompt();
             }],
 			
-			print: (function()
-			{
-				return function(text) {
-					if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-					window.terminal.write(text + '\r\n');
-				};
-			})(),
-
-			printErr: function(text)
+			print(text)
 			{
 				if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-				console.error(text);
+				window.terminal.write(text + '\r\n');
 			},
+
+			printErr(text)
+			{
+				if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+			    Module.print('stderr: ' + text);
+            },
 			
-			setStatus: function(text)
+			setStatus(text)
 			{
 				statusElement.value += (this.statusPrefix || '') + text + '\n';
 				statusElement.scrollTop = statusElement.scrollHeight;
@@ -551,5 +605,8 @@
 		window.onerror = () => { Module.statusPrefix = '[post-exception] ';};
 		</script>
 		<script async type="text/javascript" src="emscriptenfs.js"></script>
+        
+        <script type="text/javascript" src="busytex.js"></script>
+
 	</body>
 </html>

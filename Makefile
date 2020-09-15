@@ -1,10 +1,11 @@
-all: cat.js cowsay.js emscriptenfs.js
-	
+all: emscriptenfs.js busytex.js busytex.wasm texlive.data
+
+
 test:
 	mkdir -p test
 
 test/test.txt: test
-	echo "console.log('Hello world')" > test/test.txt
+	echo "console.log('Hello world now')" > test/test.txt
 
 test/test.pdf: test
 	wget -O test/test.pdf https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/web/compressed.tracemonkey-pldi-09.pdf
@@ -16,19 +17,16 @@ test/test.svg: test
 	wget -O test/test.svg https://upload.wikimedia.org/wikipedia/commons/c/c3/Flag_of_France.svg
 
 test/test.tex: test
-	echo '\documentclass{article}' > test/test.tex
+	echo '\\documentclass{article}' > test/test.tex
 	echo '\\begin{document}Hello, world!\\end{document}' >> test/test.tex
 
 emscriptenfs.js: test/test.txt test/test.pdf test/test.png test/test.svg test/test.tex
 	emcc emscriptenfs.c -o $@ --preload-file test@/home/web_user/test -s FORCE_FILESYSTEM=1 -s EXPORTED_RUNTIME_METHODS='["FS"]' -s INVOKE_RUN=0 
 
-cat.js: 
-	emcc cat.c -o $@ -s INVOKE_RUN=0 -s EXPORTED_FUNCTIONS='["_main"]' -s EXPORTED_RUNTIME_METHODS='["callMain","FS"]' -s MODULARIZE=1 -s EXPORT_NAME=cat
-
-cowsay.js: 
-	emcc cowsay.c -o $@ -s INVOKE_RUN=0 -s EXPORTED_FUNCTIONS='["_main"]' -s EXPORTED_RUNTIME_METHODS='["callMain"]' -s MODULARIZE=1 -s EXPORT_NAME=cowsay
+busytex.js busytex.wasm texlive.data:
+	cp ../xetex2020.js/$@ .
 
 clean:
-	rm *.js *.data *.wasm
+	rm -rf test *.js *.data *.wasm
 
 .PHONY: clean
