@@ -314,10 +314,11 @@
                 Module.FS.chdir(dirname);
                 
                 Module.callMain(['xetex', '--interaction=nonstopmode', '--halt-on-error', '--no-pdf', '--fmt=' + fmt_xelatex,  source_name]);
-                Module.callMain(['dvipdfmx', source_name.replace('.tex', '.xdv')]);
+                console.log('After xetex');
+                //Module.callMain(['dvipdfmx', source_name.replace('.tex', '.xdv')]);
                 
-                const pdf = Module.FS.readFile(source_path.replace('.tex', '.pdf'), {encoding: 'binary'});
-                this.FS.writeFile(file_path.replace('.tex', '.pdf'), pdf);
+                //const pdf = Module.FS.readFile(source_path.replace('.tex', '.pdf'), {encoding: 'binary'});
+                //this.FS.writeFile(file_path.replace('.tex', '.pdf'), pdf);
             }
 
             async upload(file_path)
